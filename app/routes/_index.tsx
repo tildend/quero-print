@@ -141,7 +141,7 @@ export default function Index() {
             </Box>
             <APIProvider apiKey={env.GOOGLE_MAPS_API_KEY}>
               <Map
-                className="w-full h-[480px]"
+                className="w-full h-[480px] shadow-md rounded-lg"
                 center={{ lat: currentLocation?.latitude || -23.5505, lng: currentLocation?.longitude || -46.6333 }}
                 zoom={18}
                 gestureHandling=""
