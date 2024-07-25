@@ -1,8 +1,8 @@
-import { AppShell, Container, Text } from "@mantine/core";
+import { AppShell, Box, Container, Text } from "@mantine/core";
 import { FC, PropsWithChildren, useState } from "react";
 import { Header } from "~/components/Header";
 
-export const PublicMenuLayout: FC<PropsWithChildren> = ({ children }) => {
+export const PublicMenuContentLayout: FC<PropsWithChildren> = ({ children }) => {
   const [dealText, setDealText] = useState("😱 Ganhe 5 páginas <strong>Grátis</strong> na primeira compra");
   const height = 80 + (dealText ? 32 : 0);
 
@@ -19,7 +19,9 @@ export const PublicMenuLayout: FC<PropsWithChildren> = ({ children }) => {
         <Header dealText={dealText} />
       </AppShell.Header>
 
-      <AppShell.Main>{children}</AppShell.Main>
+      <AppShell.Main className="container mx-auto bg-white/75">
+        {children}
+      </AppShell.Main>
 
       <AppShell.Footer p='md' className="shadow-md">
         <Container className="flex items-center justify-between">

@@ -9,9 +9,12 @@ import { ColorSchemeScript, createTheme, MantineColorsTuple, MantineProvider } f
 
 import '@mantine/core/styles.css';
 import '@mantine/dropzone/styles.css';
+import '@mantine/notifications/styles.css';
 
 import "./tailwind.css";
 import { LinksFunction } from "@remix-run/node";
+import { Notifications } from "@mantine/notifications";
+import { ModalsProvider } from "@mantine/modals";
 
 const print: MantineColorsTuple = [
   '#eef3ff', // zircon
@@ -52,7 +55,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         "
       >
         <MantineProvider theme={theme}>
-          {children}
+          <Notifications autoClose={4000} />
+          <ModalsProvider>
+            {children}
+          </ModalsProvider>
         </MantineProvider>
         <ScrollRestoration />
         <Scripts />
