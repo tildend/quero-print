@@ -2,10 +2,14 @@ import type { MetaFunction } from "@remix-run/node";
 import { PublicMenuLayout } from "~/layouts/PublicMenu";
 
 import { Container, Stepper } from "@mantine/core";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { json, useLoaderData } from "@remix-run/react";
 import { FilesUploadStep } from "~/components/HomeStepper/FilesUploadStep";
 import { DeliveryPlace } from "~/components/HomeStepper/DeliveryPlaceStep";
+import { useForm } from "@mantine/form";
+import { PaymentStep } from "~/components/HomeStepper/PaymentStep";
+import { allowFlex } from "~/helpers/allowFlex";
+import { loadStripe } from "@stripe/stripe-js";
 
 export const meta: MetaFunction = () => {
   return [
@@ -38,7 +42,8 @@ export const meta: MetaFunction = () => {
 export const loader = () => {
   if (!(
     process.env.GOOGLE_MAPS_API_KEY &&
-    process.env.PRICE_PER_PAGE
+    process.env.PRICE_PER_PAGE &&
+    process.env.STRIPE_SECRET_KEY
   )) {
     console.error('Missing envs');
     throw new Error('Erro interno, tente novamente mais tarde');
@@ -47,6 +52,7 @@ export const loader = () => {
   return json({
     GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
     PRICE_PER_PAGE: Number(process.env.PRICE_PER_PAGE),
+    STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY,
   });
 }
 
@@ -54,8 +60,44 @@ export default function Index() {
   const env = useLoaderData<typeof loader>();
   const [step, setStep] = useState(0);
 
+  const stripePromise = useRef(loadStripe(env.STRIPE_PUBLISHABLE_KEY || ''));
+
+  const [useLocation, setUseLocation] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState<GeolocationCoordinates>();
+  const addrForm = useForm({
+    mode: 'controlled',
+    initialValues: {
+      street: '',
+      number: '',
+      complement: '',
+      neighborhood: '',
+      city: '',
+      state: '',
+      zip: '',
+      observation: '',
+      saveAddr: false,
+    },
+    validate: {
+      street: (value) => {
+        if (!value) return 'Rua é obrigatória';
+      },
+      number: (value) => {
+        if (!value) return 'Número é obrigatório';
+      },
+      neighborhood: (value) => {
+        if (!value) return 'Bairro é obrigatório';
+      },
+      zip: (value) => {
+        if (!value) return 'CEP é obrigatório';
+        if (value.length !== 8) return 'CEP inválido';
+      }
+    }
+  });
+
   const [droppedFiles, setDroppedFiles] = useState<File[]>();
   const [totalPages, setTotalPages] = useState(0);
+
+  const isFlex = allowFlex(addrForm.values.city, addrForm.values.state);
 
   return (
     <PublicMenuLayout>
@@ -82,11 +124,19 @@ export default function Index() {
             <DeliveryPlace
               env={env}
               setStep={setStep}
+
+              useLocation={useLocation}
+              setUseLocation={setUseLocation}
+
+              currentLocation={currentLocation}
+              setCurrentLocation={setCurrentLocation}
+
+              addrForm={addrForm}
             />
           </Stepper.Step>
 
           <Stepper.Step label="Pagamento" description="Escolha a forma de pagamento">
-
+            <PaymentStep stripePromise={stripePromise.current} totalPages={totalPages} setStep={setStep} />
           </Stepper.Step>
         </Stepper>
       </Container>
