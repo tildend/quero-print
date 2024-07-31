@@ -12,6 +12,7 @@ import { allowFlex } from "~/helpers/allowFlex";
 import { loadStripe } from "@stripe/stripe-js";
 import { getAddrDistance, getCoordsDistance } from "~/controllers/GeoAPI";
 import { notifications } from "@mantine/notifications";
+import { useViewportSize } from "@mantine/hooks";
 
 export const meta: MetaFunction = () => {
   return [
@@ -79,6 +80,8 @@ export const loader = () => {
 
 export default function Index() {
   const env = useLoaderData<typeof loader>();
+  const { width } = useViewportSize();
+
   const [step, setStep] = useState(0);
 
   const stripePromise = useRef(loadStripe(env.STRIPE_PUBLISHABLE_KEY || ''));
@@ -176,13 +179,24 @@ export default function Index() {
 
   return (
     <PublicMenuLayout>
-      <Container>
+      <Container className="pb-16">
         <Stepper
           active={step}
-          allowNextStepsSelect={true}
+          // allowNextStepsSelect={true}
           onStepClick={setStep}
+          orientation={width < 768 ? 'vertical' : 'horizontal'}
           classNames={{
+            step: 'group',
+            stepBody: `
+              group-data-[progress=true]:p-2
+              group-data-[progress=true]:rounded-lg
+              group-data-[progress=true]:bg-white/30
+              duration-700
+            `,
             stepDescription: 'text-daintree',
+            stepIcon: `
+              data-[completed=true]:border-green-400 data-[completed=true]:bg-green-400
+            `
           }}
         >
           <Stepper.Step label="Escolha os arquivos" description="Envie os arquivos para impressão">

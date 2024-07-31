@@ -6,6 +6,7 @@ import { Dropzone } from "@mantine/dropzone";
 import { FileComponent } from "./FilesUploadStep/FileComponent";
 import { modals } from "@mantine/modals";
 import { numToSize } from "~/helpers/numToSize";
+import scrollareaGradientStyles from "./FilesUploadStep/scrollarea-gradient.module.css";
 
 type Props = {
   droppedFiles: File[] | undefined;
@@ -78,42 +79,48 @@ export const FilesUploadStep: FC<Props> = ({ droppedFiles, setDroppedFiles, setS
       accept={['image/png', 'image/jpeg', 'image/jpg', 'application/pdf']}
       maxSize={MAX_FILE_SIZE}
       classNames={{
-        root: 'group bg-white/75 shadow-md',
+        root: `
+          relative
+          left-1/2 lg:left-auto
+          w-screen lg:w-full
+          group
+          bg-gradient-to-b from-[#F3F6FB] to-[#D5DDEC]
+          lg:bg-white/75
+          shadow-md
+          -translate-x-1/2 lg:-translate-x-0
+        `,
       }}
     >
-      <Box
-        h="480px"
-      >
-        <div className="grid grid-cols-[1fr_auto_0.6fr] h-full z-[1] pointer-events-auto">
+      <Box className="lg:h-[480px]">
+        <div
+          className="
+            grid
+            grid-rows-[1fr_auto_auto]
+            lg:grid-cols-[1fr_auto_0.6fr]
+            h-full
+            z-[1]
+            pointer-events-auto
+          "
+        >
           <div className="max-w-full flex flex-col gap-4 items-center justify-center">
             <IconCloudUpload size={128} color={colors.metallic} />
             <Text size="xl" ta="center">Arraste e solte os arquivos aqui</Text>
             <Text size="sm" ta="center">ou clique para procurar</Text>
           </div>
 
-          <Divider orientation="vertical" mx="lg" />
+          <Divider orientation="vertical" mx="lg" className="hidden lg:block" />
+          <Divider orientation="horizontal" my="lg" className="lg:hidden" />
 
           <Box className="w-full flex flex-col justify-between opacity-85 pointer-events-auto z-[1]">
-            <List className="w-full text-sm" spacing="lg">
+            <List className="w-full text-sm h-[410px] mb-8" spacing="lg">
               <ScrollArea
-                h={400}
+                data-has-files={!!droppedFiles?.length}
                 data-scroll-at-bottom={!!droppedFiles && scrollPosition.y >= (droppedFiles?.length * 35) - 440}
                 onScrollPositionChange={onScrollPositionChange}
+                classNames={scrollareaGradientStyles}
                 className="
-                  after:content-['']
-                  after:absolute
-                  after:bottom-0 after:left-0 after:right-0
-                  after:h-48
-                  after:transition-opacity
-                  after:duration-700
-                  after:ease-in-out
-                  after:opacity-100
-                  after:pointer-events-none
-                  after:bg-gradient-to-t from-[#E0E6F2] from-15% to-transparent
-                  group-hover:after:from-[#f8f9fa]
-                  group-hover:after:from-5%
-                  data-[scroll-at-bottom='true']:after:opacity-0
-                  after:z-[1]
+                  group-hover:after:from-[#D8E0EF]
+                  lg:group-hover:after:from-[#f8f9fa]
                 "
               >
                 {droppedFiles ? droppedFiles.map((file, i) => (
@@ -137,7 +144,7 @@ export const FilesUploadStep: FC<Props> = ({ droppedFiles, setDroppedFiles, setS
             </List>
 
             <Box className="flex justify-between items-center">
-              <Text size="xl" c="gray" hidden={!totalPages}>{totalPages} página{totalPages > 1 ? 's' : ''}</Text>
+              <Text size="lg" c="gray" hidden={!totalPages}>{totalPages} página{totalPages > 1 ? 's' : ''}</Text>
               <Text size="sm" c="gray" hidden={!!totalPages}>
                 Envie seus arquivos para começar
               </Text>
@@ -147,6 +154,7 @@ export const FilesUploadStep: FC<Props> = ({ droppedFiles, setDroppedFiles, setS
                   setStep(1);
                 }}
                 color="green"
+                size="md"
                 disabled={!totalPages}
               >
                 Continuar

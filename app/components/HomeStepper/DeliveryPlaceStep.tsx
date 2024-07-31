@@ -107,12 +107,12 @@ export const DeliveryPlace: FC<Props> = ({
     <Box
       data-use-location={useLocation ? 'true' : 'false'}
       className="
-        grid gap-4 mt-12
+        grid gap-4 mt-6 lg:mt-12
         data-[use-location=true]:lg:grid-cols-[1fr_.5fr]
       "
     >
       <form onSubmit={addrForm.onSubmit(handleConfirmAddr)} className="grid gap-4">
-        <Box className="grid gap-4 items-center p-8 grid-cols-[1fr_auto_1fr] bg-white/25 rounded-lg">
+        <Box className="grid gap-4 items-center p-4 lg:p-8 grid-cols-[1fr_auto_1fr] bg-white/25 rounded-lg">
           <Button
             px="xs"
             className="rounded-l-lg"
@@ -121,9 +121,11 @@ export const DeliveryPlace: FC<Props> = ({
             onClick={handleUseLocation}
             loading={loading}
           >
-            Usar localização atual {useLocation ? <IconCheck color="green" className="ml-3" /> : <IconMapPinFilled className="ml-3" />}
+            Usar <span className="hidden lg:inline">localização atual</span>
+            <span className="lg:hidden">&nbsp;GPS</span>
+            {useLocation ? <IconCheck color="green" className="ml-3" /> : <IconMapPinFilled className="ml-3" />}
           </Button>
-          {'ou'}
+          <span className="block">ou</span>
           <TextInput
             {...addrForm.getInputProps('zip')}
             type="text"
@@ -202,12 +204,15 @@ export const DeliveryPlace: FC<Props> = ({
           <Button
             onClick={() => setStep(0)}
             variant="light"
+            size="md"
           >
             Voltar
           </Button>
 
           <Button
             type="submit"
+            color="green"
+            size="md"
             loading={loading}
             disabled={addrForm.isDirty() && Object.values(addrForm.isValid).some(valid => !valid)}
           >

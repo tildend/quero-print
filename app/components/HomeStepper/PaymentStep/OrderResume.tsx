@@ -18,7 +18,7 @@ type Props = {
 
 export const OrderResume: FC<Props> = ({ env, files, totalPages, isFlex, shippingTotal, orderTotal, hidden }) => {
   return (
-    <Box className="hidden lg:flex flex-col gap-4 p-6 rounded-lg bg-white/25">
+    <Box className="flex flex-col gap-4 p-6 rounded-lg bg-white/25">
       <Title order={3}>Resumo do pedido</Title>
       <ScrollArea mah={286} className="grid gap-4">
         <List>

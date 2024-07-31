@@ -11,6 +11,11 @@ export const PublicMenuLayout: FC<PropsWithChildren> = ({ children }) => {
       header={{ height }}
       padding={"xl"}
       bg={"transparent"}
+      footer={{
+        height: 48,
+        collapsed: false,
+        offset: true
+      }}
     >
       <AppShell.Header
         color="print"
@@ -25,7 +30,7 @@ export const PublicMenuLayout: FC<PropsWithChildren> = ({ children }) => {
         <Container className="flex items-center justify-between">
           <Text className="text-xs font-bold">Quero Print &copy; 2024</Text>
 
-          <Text className="italic" size="sm">Impressão e envio de fotos e documentos a partir de 1h</Text>
+          <Text className="italic text-xs">Impressão e envio arquivos na hora ⚡️</Text>
         </Container>
       </AppShell.Footer>
     </AppShell>

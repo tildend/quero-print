@@ -84,7 +84,7 @@ export const PaymentStep: FC<Props> = ({ env, isFlex, files, totalPages, stripeP
   };
 
   return (
-    <Box className="w-full grid grid-cols-[1fr_auto_.6fr] gap-8 mt-12">
+    <Box className="w-full flex flex-col-reverse lg:grid lg:grid-cols-[1fr_auto_.6fr] gap-8 mt-6 lg:mt-12">
       <form className="grid gap-3">
         <h2 className="text-2xl font-bold">Informações de pagamento</h2>
         <TextInput
@@ -122,6 +122,7 @@ export const PaymentStep: FC<Props> = ({ env, isFlex, files, totalPages, stripeP
       </form>
 
       <Divider orientation="vertical" className="hidden lg:block" />
+      <Divider orientation="horizontal" className="lg:hidden" />
 
       <OrderResume
         env={env}
