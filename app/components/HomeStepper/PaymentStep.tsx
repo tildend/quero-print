@@ -1,20 +1,38 @@
-import { Box, Divider, TextInput, Title } from "@mantine/core";
+import { Box, Divider, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { Dispatch, FC, SetStateAction, useEffect, useRef, useState } from "react";
+import { Dispatch, FC, SetStateAction, useEffect, useState } from "react";
 
 import { loadStripe, StripeElementsOptions } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
-import { PaymentForm } from "./PaymentForm/PaymentForm";
+import { PaymentForm } from "./PaymentStep/PaymentForm";
+import { OrderResume } from "./PaymentStep/OrderResume";
 
 type Props = {
+  // env
+  env: {
+    PRICE_PER_PAGE: number;
+    PRICE_FLEX: number;
+    PRICE_SEDEX_BASE: number;
+    PRICE_FLEX_PER_KM: number;
+  }
+  // Stripe
   stripePromise: ReturnType<typeof loadStripe>;
+
+  // Is Flex
+  isFlex: boolean;
+
   // Parent state setter
   setStep: Dispatch<SetStateAction<number>>;
 
+  // Files
+  files: File[];
   totalPages: number;
+
+  shippingTotal?: number;
+  orderTotal?: number;
 }
 
-export const PaymentStep: FC<Props> = ({ stripePromise, setStep }) => {
+export const PaymentStep: FC<Props> = ({ env, isFlex, files, totalPages, stripePromise, shippingTotal, orderTotal }) => {
   const payForm = useForm({
     initialValues: {
       fullName: '',
@@ -103,33 +121,16 @@ export const PaymentStep: FC<Props> = ({ stripePromise, setStep }) => {
         </Box>
       </form>
 
-      <Divider orientation="vertical" />
+      <Divider orientation="vertical" className="hidden lg:block" />
 
-      <Box className="grid gap-4 p-6 rounded-lg bg-white/25">
-        <Title order={3}>Resumo do pedido</Title>
-        <Box className="grid gap-2">
-          <Box className="grid grid-cols-2 gap-2">
-            <span>Arquivos:</span>
-            <span>2</span>
-          </Box>
-          <Box className="grid grid-cols-2 gap-2">
-            <span>Páginas:</span>
-            <span>10</span>
-          </Box>
-          <Box className="grid grid-cols-2 gap-2">
-            <span>Valor:</span>
-            <span>R$ 100,00</span>
-          </Box>
-          <Box className="grid grid-cols-2 gap-2">
-            <span>Entrega:</span>
-            <span>Grátis</span>
-          </Box>
-          <Box className="grid grid-cols-2 gap-2">
-            <span>Total:</span>
-            <span>R$ 100,00</span>
-          </Box>
-        </Box>
-      </Box>
+      <OrderResume
+        env={env}
+        files={files}
+        totalPages={totalPages}
+        shippingTotal={shippingTotal}
+        orderTotal={orderTotal}
+        isFlex={isFlex}
+      />
     </Box>
   );
 }

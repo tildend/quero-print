@@ -2,7 +2,7 @@ import type { MetaFunction } from "@remix-run/node";
 import { PublicMenuLayout } from "~/layouts/PublicMenu";
 
 import { Container, Stepper } from "@mantine/core";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { json, useLoaderData } from "@remix-run/react";
 import { FilesUploadStep } from "~/components/HomeStepper/FilesUploadStep";
 import { DeliveryPlace } from "~/components/HomeStepper/DeliveryPlaceStep";
@@ -10,6 +10,8 @@ import { useForm } from "@mantine/form";
 import { PaymentStep } from "~/components/HomeStepper/PaymentStep";
 import { allowFlex } from "~/helpers/allowFlex";
 import { loadStripe } from "@stripe/stripe-js";
+import { getAddrDistance, getCoordsDistance } from "~/controllers/GeoAPI";
+import { notifications } from "@mantine/notifications";
 
 export const meta: MetaFunction = () => {
   return [
@@ -43,7 +45,17 @@ export const loader = () => {
   if (!(
     process.env.GOOGLE_MAPS_API_KEY &&
     process.env.PRICE_PER_PAGE &&
-    process.env.STRIPE_SECRET_KEY
+    process.env.STRIPE_PUBLISHABLE_KEY &&
+
+    process.env.PRICE_PER_PAGE &&
+    process.env.PRICE_FLEX &&
+    process.env.PRICE_SEDEX_BASE &&
+    process.env.PRICE_FLEX_PER_KM &&
+
+    process.env.BASE_LAT &&
+    process.env.BASE_LON &&
+
+    process.env.GEOAPIFI_KEY
   )) {
     console.error('Missing envs');
     throw new Error('Erro interno, tente novamente mais tarde');
@@ -53,6 +65,15 @@ export const loader = () => {
     GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
     PRICE_PER_PAGE: Number(process.env.PRICE_PER_PAGE),
     STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY,
+
+    PRICE_FLEX: Number(process.env.PRICE_FLEX),
+    PRICE_SEDEX_BASE: Number(process.env.PRICE_SEDEX_BASE),
+    PRICE_FLEX_PER_KM: Number(process.env.PRICE_FLEX_PER_KM),
+
+    BASE_LAT: Number(process.env.BASE_LAT),
+    BASE_LON: Number(process.env.BASE_LON),
+
+    GEOAPIFI_KEY: process.env.GEOAPIFI_KEY
   });
 }
 
@@ -62,11 +83,14 @@ export default function Index() {
 
   const stripePromise = useRef(loadStripe(env.STRIPE_PUBLISHABLE_KEY || ''));
 
+  const [loading, setLoading] = useState(false);
+
   const [useLocation, setUseLocation] = useState(false);
-  const [currentLocation, setCurrentLocation] = useState<GeolocationCoordinates>();
+  const [coordinates, setCoordinates] = useState<GeolocationCoordinates>();
   const addrForm = useForm({
     mode: 'controlled',
     initialValues: {
+      useLocation: false,
       street: '',
       number: '',
       complement: '',
@@ -75,19 +99,27 @@ export default function Index() {
       state: '',
       zip: '',
       observation: '',
-      saveAddr: false,
+      saveAddr: false
     },
     validate: {
       street: (value) => {
+        if (addrForm.values.useLocation) return;
+
         if (!value) return 'Rua é obrigatória';
       },
       number: (value) => {
+        if (addrForm.values.useLocation) return;
+
         if (!value) return 'Número é obrigatório';
       },
       neighborhood: (value) => {
+        if (addrForm.values.useLocation) return;
+
         if (!value) return 'Bairro é obrigatório';
       },
       zip: (value) => {
+        if (addrForm.values.useLocation) return;
+
         if (!value) return 'CEP é obrigatório';
         if (value.length !== 8) return 'CEP inválido';
       }
@@ -97,7 +129,50 @@ export default function Index() {
   const [droppedFiles, setDroppedFiles] = useState<File[]>();
   const [totalPages, setTotalPages] = useState(0);
 
-  const isFlex = allowFlex(addrForm.values.city, addrForm.values.state);
+  const printTotal = totalPages * env.PRICE_PER_PAGE;
+  const [shippingDistance, setShippingDistance] = useState<number>();
+
+  const isFlex = allowFlex(addrForm.values.city, addrForm.values.state) || (shippingDistance || 9999999) < 20_000;
+  const shippingTotal = shippingDistance ? (
+    isFlex ? (
+      env.PRICE_FLEX + ((shippingDistance / 1000) * env.PRICE_FLEX_PER_KM)
+    ) : env.PRICE_SEDEX_BASE
+  ) : undefined;
+
+  const orderTotal = shippingTotal && printTotal + shippingTotal;
+
+  const handleConfirmAddr = async () => {
+    setLoading(true);
+    try {
+      if (addrForm.values.useLocation && coordinates?.latitude) {
+        await getCoordsDistance(coordinates, env).then(distance => {
+          if (distance) setShippingDistance(distance);
+          else throw new Error('No distance found');
+        });
+      } else if (addrForm.isValid()) {
+        await getAddrDistance(
+          env,
+          addrForm.values.street,
+          addrForm.values.number,
+          addrForm.values.city,
+          addrForm.values.state,
+          addrForm.values.zip
+        ).then(distance => {
+          if (distance) setShippingDistance(distance);
+        });
+      }
+
+      setStep(2);
+    } catch (error) {
+      notifications.show({
+        title: 'Erro',
+        message: 'Endereço não encontrado, verifique os dados e tente novamente',
+        color: 'red',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <PublicMenuLayout>
@@ -128,15 +203,27 @@ export default function Index() {
               useLocation={useLocation}
               setUseLocation={setUseLocation}
 
-              currentLocation={currentLocation}
-              setCurrentLocation={setCurrentLocation}
+              currentLocation={coordinates}
+              setCurrentLocation={setCoordinates}
 
               addrForm={addrForm}
+              handleConfirmAddr={handleConfirmAddr}
+
+              loading={loading}
             />
           </Stepper.Step>
 
           <Stepper.Step label="Pagamento" description="Escolha a forma de pagamento">
-            <PaymentStep stripePromise={stripePromise.current} totalPages={totalPages} setStep={setStep} />
+            <PaymentStep
+              stripePromise={stripePromise.current}
+              totalPages={totalPages}
+              files={droppedFiles || []}
+              isFlex={isFlex}
+              setStep={setStep}
+              orderTotal={orderTotal}
+              shippingTotal={shippingTotal}
+              env={env}
+            />
           </Stepper.Step>
         </Stepper>
       </Container>

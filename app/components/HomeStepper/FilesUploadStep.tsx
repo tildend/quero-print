@@ -5,6 +5,7 @@ import { useColors } from "tailwind.config";
 import { Dropzone } from "@mantine/dropzone";
 import { FileComponent } from "./FilesUploadStep/FileComponent";
 import { modals } from "@mantine/modals";
+import { numToSize } from "~/helpers/numToSize";
 
 type Props = {
   droppedFiles: File[] | undefined;
@@ -14,11 +15,13 @@ type Props = {
   setStep: Dispatch<SetStateAction<number>>;
 }
 
+const MAX_FILE_SIZE = 100 * 1024 * 1024;
+
 export const FilesUploadStep: FC<Props> = ({ droppedFiles, setDroppedFiles, setStep, totalPages, setTotalPages }) => {
   const [filesPages, setFilesPages] = useState<Record<number, number>>({});
   const onDrop = (files: File[]) => {
     for (const file of files) {
-      if (file.size > 10 * 1024 * 1024) {
+      if (file.size > MAX_FILE_SIZE) {
         modals.open({
           title: <Title order={3}>Arquivo muito grande</Title>,
           children: (
@@ -73,6 +76,7 @@ export const FilesUploadStep: FC<Props> = ({ droppedFiles, setDroppedFiles, setS
       multiple
       onDrop={onDrop}
       accept={['image/png', 'image/jpeg', 'image/jpg', 'application/pdf']}
+      maxSize={MAX_FILE_SIZE}
       classNames={{
         root: 'group bg-white/75 shadow-md',
       }}
@@ -125,7 +129,7 @@ export const FilesUploadStep: FC<Props> = ({ droppedFiles, setDroppedFiles, setS
                   <>
                     <List.Item className="leading-tight">📷 Fotos: <span className="font-bold"><Tooltip label="ou jpeg"><span>JPG</span></Tooltip>, PNG</span></List.Item>
                     <List.Item className="leading-tight">📄 Documentos: <span className="font-bold">PDF</span></List.Item>
-                    <List.Item className="leading-tight">📦 Tamanho máximo <span className="font-bold">10MB</span></List.Item>
+                    <List.Item className="leading-tight">📦 Tamanho máximo <span className="font-bold">{numToSize(MAX_FILE_SIZE)}</span></List.Item>
                     <List.Item className="leading-tight">📏 Dimensão máxima <span className="font-bold">A4</span></List.Item>
                   </>
                 )}

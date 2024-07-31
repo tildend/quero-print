@@ -11,8 +11,19 @@ import { createReadableStreamFromReadable } from "@remix-run/node";
 import { RemixServer } from "@remix-run/react";
 import { isbot } from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
+import { mongo } from "./drivers/mongodb";
 
 const ABORT_DELAY = 5_000;
+
+process.on('SIGINT', async () => {
+  await mongo.close();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  await mongo.close();
+  process.exit(0);
+});
 
 export default function handleRequest(
   request: Request,
@@ -26,17 +37,17 @@ export default function handleRequest(
 ) {
   return isbot(request.headers.get("user-agent") || "")
     ? handleBotRequest(
-        request,
-        responseStatusCode,
-        responseHeaders,
-        remixContext
-      )
+      request,
+      responseStatusCode,
+      responseHeaders,
+      remixContext
+    )
     : handleBrowserRequest(
-        request,
-        responseStatusCode,
-        responseHeaders,
-        remixContext
-      );
+      request,
+      responseStatusCode,
+      responseHeaders,
+      remixContext
+    );
 }
 
 function handleBotRequest(

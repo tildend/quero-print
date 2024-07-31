@@ -1,10 +1,11 @@
-import React, { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import {
   PaymentElement,
   useStripe,
   useElements
 } from "@stripe/react-stripe-js";
-import { StripePaymentElementOptions } from "@stripe/stripe-js";
+import { Button } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 
 export const PaymentForm = () => {
   const stripe = useStripe();
@@ -50,6 +51,11 @@ export const PaymentForm = () => {
     if (!stripe || !elements) {
       // Stripe.js hasn't yet loaded.
       // Make sure to disable form submission until Stripe.js has loaded.
+      notifications.show({
+        title: "Tente novamente",
+        message: "Pagamento temporariamente indisponível",
+        color: "yellow"
+      })
       return;
     }
 
@@ -57,9 +63,10 @@ export const PaymentForm = () => {
 
     const { error } = await stripe.confirmPayment({
       elements,
+      redirect: "if_required",
       confirmParams: {
         // Make sure to change this to your payment completion page
-        return_url: "http://localhost:3000",
+        return_url: `${window.location.origin}/payment-complete`,
       },
     });
 
@@ -68,7 +75,7 @@ export const PaymentForm = () => {
     // your `return_url`. For some payment methods like iDEAL, your customer will
     // be redirected to an intermediate site first to authorize the payment, then
     // redirected to the `return_url`.
-    if (error.type === "card_error" || error.type === "validation_error") {
+    if (error?.type === "card_error" || error?.type === "validation_error") {
       setMessage(error.message);
     } else {
       setMessage("An unexpected error occurred.");
@@ -77,19 +84,22 @@ export const PaymentForm = () => {
     setIsLoading(false);
   };
 
-  const paymentElementOptions: StripePaymentElementOptions = {
-    layout: "tabs"
-  }
-
   return (
-    <form id="payment-form" onSubmit={handleSubmit}>
-
-      <PaymentElement id="payment-element" options={paymentElementOptions} />
-      <button disabled={isLoading || !stripe || !elements} id="submit">
-        <span id="button-text">
-          {isLoading ? <div className="spinner" id="spinner"></div> : "Pay now"}
-        </span>
-      </button>
+    <form id="payment-form" onSubmit={handleSubmit} className="grid gap-4">
+      <PaymentElement
+        id="payment-element"
+        options={{
+          layout: "accordion"
+        }}
+      />
+      <Button
+        id="submit"
+        color="green"
+        loading={isLoading}
+        disabled={isLoading || !stripe || !elements}
+      >
+        Finalizar
+      </Button>
       {/* Show any error or success messages */}
       {message && <div id="payment-message">{message}</div>}
     </form>

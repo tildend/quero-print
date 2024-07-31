@@ -11,6 +11,9 @@ type Props = {
   // Parent state setter
   setStep: (step: number | ((prev: number) => number)) => void;
   env: { GOOGLE_MAPS_API_KEY: string };
+
+  loading: boolean;
+
   // Location state
   useLocation: boolean;
   setUseLocation: Dispatch<SetStateAction<boolean>>;
@@ -29,15 +32,19 @@ type Props = {
     zip: string;
     observation: string;
     saveAddr: boolean;
+    useLocation: boolean;
   }>>;
+  handleConfirmAddr: () => void;
 }
 
 export const DeliveryPlace: FC<Props> = ({
   setStep,
   env,
+  loading,
   useLocation, setUseLocation,
   currentLocation, setCurrentLocation,
-  addrForm
+  addrForm,
+  handleConfirmAddr
 }) => {
   useEffect(() => {
     if (navigator.geolocation && useLocation) {
@@ -79,21 +86,40 @@ export const DeliveryPlace: FC<Props> = ({
 
   const formDisabled = viaCEPLoading || useLocation || !addrForm.isValid('zip');
 
-  const handleFormSubmit = () => {
-    if (addrForm.isValid())
-      setStep(2);
-  };
+  const handleUseLocation = () => {
+    if (useLocation) {
+      // If setting to not use location, restore saved form values
+      const savedValues = window.localStorage.getItem('addrForm');
+      if (savedValues) {
+        addrForm.setValues(JSON.parse(savedValues));
+        window.localStorage.removeItem('addrForm');
+      }
+    } else {
+      window.localStorage.setItem('addrForm', JSON.stringify(addrForm.values));
+      addrForm.reset();
+    }
+
+    addrForm.setFieldValue('useLocation', !useLocation);
+    setUseLocation(curr => !curr);
+  }
 
   return (
-    <Box className="grid lg:grid-cols-[1fr_.5fr] gap-4 mt-12">
-      <form onSubmit={addrForm.onSubmit(handleFormSubmit)} className="grid gap-4">
+    <Box
+      data-use-location={useLocation ? 'true' : 'false'}
+      className="
+        grid gap-4 mt-12
+        data-[use-location=true]:lg:grid-cols-[1fr_.5fr]
+      "
+    >
+      <form onSubmit={addrForm.onSubmit(handleConfirmAddr)} className="grid gap-4">
         <Box className="grid gap-4 items-center p-8 grid-cols-[1fr_auto_1fr] bg-white/25 rounded-lg">
           <Button
             px="xs"
             className="rounded-l-lg"
             variant={useLocation ? 'filled' : 'light'}
             color={useLocation ? 'green' : undefined}
-            onClick={() => setUseLocation(using => !using)}
+            onClick={handleUseLocation}
+            loading={loading}
           >
             Usar localização atual {useLocation ? <IconCheck color="green" className="ml-3" /> : <IconMapPinFilled className="ml-3" />}
           </Button>
@@ -109,7 +135,7 @@ export const DeliveryPlace: FC<Props> = ({
             }}
             disabled={useLocation}
             rightSection={viaCEPLoading && <Loader size="sm" />}
-            required
+            required={!formDisabled}
           />
         </Box>
 
@@ -119,14 +145,14 @@ export const DeliveryPlace: FC<Props> = ({
             type="text"
             placeholder="Rua"
             disabled={formDisabled}
-            required
+            required={!formDisabled}
           />
           <TextInput
             {...addrForm.getInputProps('number')}
             type="text"
             placeholder="Número"
             disabled={formDisabled}
-            required
+            required={!formDisabled}
           />
           <TextInput
             {...addrForm.getInputProps('complement')}
@@ -139,21 +165,21 @@ export const DeliveryPlace: FC<Props> = ({
             type="text"
             placeholder="Bairro"
             disabled={formDisabled}
-            required
+            required={!formDisabled}
           />
           <TextInput
             {...addrForm.getInputProps('city')}
             type="text"
             placeholder="Cidade"
             disabled={formDisabled}
-            required
+            required={!formDisabled}
           />
           <TextInput
             {...addrForm.getInputProps('state')}
             type="text"
             placeholder="Estado"
             disabled={formDisabled}
-            required
+            required={!formDisabled}
           />
           <Checkbox
             {...addrForm.getInputProps('saveAddr')}
@@ -182,14 +208,15 @@ export const DeliveryPlace: FC<Props> = ({
 
           <Button
             type="submit"
-            disabled={Object.values(addrForm.isValid).some(valid => !valid)}
+            loading={loading}
+            disabled={addrForm.isDirty() && Object.values(addrForm.isValid).some(valid => !valid)}
           >
             Continuar
           </Button>
         </Box>
       </form>
 
-      <APIProvider apiKey={env.GOOGLE_MAPS_API_KEY}>
+      {useLocation && <APIProvider apiKey={env.GOOGLE_MAPS_API_KEY}>
         <Map
           className="w-full h-[485px] shadow-md rounded-lg"
           center={{ lat: currentLocation?.latitude || -23.5505, lng: currentLocation?.longitude || -46.6333 }}
@@ -202,7 +229,7 @@ export const DeliveryPlace: FC<Props> = ({
         >
           {currentLocation && <AdvancedMarker position={{ lat: currentLocation.latitude, lng: currentLocation.longitude }} />}
         </Map>
-      </APIProvider>
+      </APIProvider>}
     </Box>
   );
 }
