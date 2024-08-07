@@ -1,8 +1,8 @@
 import type { MetaFunction } from "@remix-run/node";
 import { PublicMenuLayout } from "~/layouts/PublicMenu";
 
-import { Container, Stepper } from "@mantine/core";
-import { useEffect, useRef, useState } from "react";
+import { Box, Container, Divider } from "@mantine/core";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { json, useLoaderData } from "@remix-run/react";
 import { FilesUploadStep } from "~/components/HomeStepper/FilesUploadStep";
 import { DeliveryPlace } from "~/components/HomeStepper/DeliveryPlaceStep";
@@ -10,9 +10,9 @@ import { useForm } from "@mantine/form";
 import { PaymentStep } from "~/components/HomeStepper/PaymentStep";
 import { allowFlex } from "~/helpers/allowFlex";
 import { loadStripe } from "@stripe/stripe-js";
-import { getAddrDistance, getCoordsDistance } from "~/controllers/GeoAPI";
-import { notifications } from "@mantine/notifications";
-import { useViewportSize } from "@mantine/hooks";
+import { Swiper, SwiperSlide } from "swiper/react";
+import SwiperInstance from "swiper";
+import { IconCheck } from "@tabler/icons-react";
 
 export const meta: MetaFunction = () => {
   return [
@@ -80,11 +80,16 @@ export const loader = () => {
 
 export default function Index() {
   const env = useLoaderData<typeof loader>();
-  const { width } = useViewportSize();
 
+  const stepSwiper = useRef<SwiperInstance>();
+  const stepCompSwiper = useRef<SwiperInstance>();
   const [step, setStep] = useState(0);
-
-  const stripePromise = useRef(loadStripe(env.STRIPE_PUBLISHABLE_KEY || ''));
+  useEffect(() => {
+    if (stepSwiper.current && stepCompSwiper.current) {
+      stepSwiper.current.slideTo(step);
+      stepCompSwiper.current.slideTo(step);
+    }
+  }, [stepSwiper.current, stepCompSwiper.current, step]);
 
   const [loading, setLoading] = useState(false);
 
@@ -133,7 +138,19 @@ export default function Index() {
   const [totalPages, setTotalPages] = useState(0);
 
   const printTotal = totalPages * env.PRICE_PER_PAGE;
-  const [shippingDistance, setShippingDistance] = useState<number>();
+  const shippingDistance = useMemo(() => {
+    // Distance from base to destination
+    if (addrForm.values.useLocation && coordinates?.latitude) {
+      const deg = Math.sqrt(
+        Math.pow(coordinates.latitude - env.BASE_LAT, 2) +
+        Math.pow(coordinates.longitude - env.BASE_LON, 2)
+      );
+
+      // Return distance in meters
+      return deg * 60 * 60 * 400;
+    }
+    return undefined;
+  }, [addrForm.values.useLocation, coordinates]);
 
   const isFlex = allowFlex(addrForm.values.city, addrForm.values.state) || (shippingDistance || 9999999) < 20_000;
   const shippingTotal = shippingDistance ? (
@@ -144,102 +161,124 @@ export default function Index() {
 
   const orderTotal = shippingTotal && printTotal + shippingTotal;
 
-  const handleConfirmAddr = async () => {
-    setLoading(true);
-    try {
-      if (addrForm.values.useLocation && coordinates?.latitude) {
-        await getCoordsDistance(coordinates, env).then(distance => {
-          if (distance) setShippingDistance(distance);
-          else throw new Error('No distance found');
-        });
-      } else if (addrForm.isValid()) {
-        await getAddrDistance(
-          env,
-          addrForm.values.street,
-          addrForm.values.number,
-          addrForm.values.city,
-          addrForm.values.state,
-          addrForm.values.zip
-        ).then(distance => {
-          if (distance) setShippingDistance(distance);
-        });
-      }
+  const stepsWithFunctionComponent = [
+    {
+      label: 'Escolha os arquivos',
+      description: 'Envie os arquivos para impressão',
+      FC: () => (
+        <FilesUploadStep
+          droppedFiles={droppedFiles}
+          setDroppedFiles={setDroppedFiles}
+          totalPages={totalPages}
+          setTotalPages={setTotalPages}
+          setStep={setStep}
+        />
+      )
+    },
+    {
+      label: 'Local de entrega',
+      description: 'Informe o endereço de entrega',
+      FC: () => (
+        <DeliveryPlace
+          env={env}
+          setStep={setStep}
 
-      setStep(2);
-    } catch (error) {
-      notifications.show({
-        title: 'Erro',
-        message: 'Endereço não encontrado, verifique os dados e tente novamente',
-        color: 'red',
-      });
-    } finally {
-      setLoading(false);
+          useLocation={useLocation}
+          setUseLocation={setUseLocation}
+
+          currentLocation={coordinates}
+          setCurrentLocation={setCoordinates}
+
+          addrForm={addrForm}
+
+          loading={loading}
+        />
+      )
+    },
+    {
+      label: 'Pagamento',
+      description: 'Escolha a forma de pagamento',
+      FC: () => (
+        <PaymentStep
+          totalPages={totalPages}
+          files={droppedFiles || []}
+          isFlex={isFlex}
+          setStep={setStep}
+          orderTotal={orderTotal}
+          shippingTotal={shippingTotal}
+          env={env}
+        />
+      )
     }
-  }
+  ];
 
   return (
     <PublicMenuLayout>
       <Container className="pb-16">
-        <Stepper
-          active={step}
-          // allowNextStepsSelect={true}
-          onStepClick={setStep}
-          orientation={width < 768 ? 'vertical' : 'horizontal'}
-          classNames={{
-            step: 'group',
-            stepBody: `
-              group-data-[progress=true]:p-2
-              group-data-[progress=true]:rounded-lg
-              group-data-[progress=true]:bg-white/30
-              duration-700
-            `,
-            stepDescription: 'text-daintree',
-            stepIcon: `
-              data-[completed=true]:border-green-400 data-[completed=true]:bg-green-400
-            `
-          }}
+        <Swiper
+          slidesPerView="auto"
+          spaceBetween={32}
+          centerInsufficientSlides
+          onSwiper={swiperInstance => stepSwiper.current = swiperInstance}
+          allowTouchMove={false}
+          className="
+            relative
+            left-1/2 -translate-x-1/2
+            w-screen lg:w-full
+            px-8 lg:px-0
+            mb-8
+          "
         >
-          <Stepper.Step label="Escolha os arquivos" description="Envie os arquivos para impressão">
-            <FilesUploadStep
-              droppedFiles={droppedFiles}
-              setDroppedFiles={setDroppedFiles}
-              totalPages={totalPages}
-              setTotalPages={setTotalPages}
-              setStep={setStep}
-            />
-          </Stepper.Step>
-
-          <Stepper.Step label="Local de entrega" description="Informe o endereço de entrega">
-            <DeliveryPlace
-              env={env}
-              setStep={setStep}
-
-              useLocation={useLocation}
-              setUseLocation={setUseLocation}
-
-              currentLocation={coordinates}
-              setCurrentLocation={setCoordinates}
-
-              addrForm={addrForm}
-              handleConfirmAddr={handleConfirmAddr}
-
-              loading={loading}
-            />
-          </Stepper.Step>
-
-          <Stepper.Step label="Pagamento" description="Escolha a forma de pagamento">
-            <PaymentStep
-              stripePromise={stripePromise.current}
-              totalPages={totalPages}
-              files={droppedFiles || []}
-              isFlex={isFlex}
-              setStep={setStep}
-              orderTotal={orderTotal}
-              shippingTotal={shippingTotal}
-              env={env}
-            />
-          </Stepper.Step>
-        </Stepper>
+          {stepsWithFunctionComponent.map(({ label, description }, index) => (
+            <SwiperSlide key={index} className="w-fit">
+              <Box
+                data-done={index < step}
+                data-current={index === step}
+                className="group flex items-center gap-2"
+              >
+                <Box
+                  className="
+                    w-8 h-8
+                    flex items-center justify-center
+                    rounded-full
+                    border border-transparent
+                    bg-white/30
+                    duration-300
+                    group-data-[current=true]:border-green-400
+                    group-data-[current=true]:bg-white
+                    group-data-[done=true]:border-green-400
+                    group-data-[done=true]:bg-green-400
+                    group-data-[done=true]:text-white
+                  "
+                >
+                  {index >= step ? index + 1 : <IconCheck />}
+                </Box>
+                <Box>
+                  <Box className="w-fit text-lg font-semibold text-daintree">{label}</Box>
+                  <Box className="w-fit text-sm text-daintree">{description}</Box>
+                </Box>
+              </Box>
+            </SwiperSlide>
+          ))}
+        </Swiper>
+        <Divider className="my-8" />
+        <Swiper
+          slidesPerView={1}
+          spaceBetween={24}
+          onSwiper={swiperInstance => stepCompSwiper.current = swiperInstance}
+          allowTouchMove={false}
+          className="relative left-1/2 -translate-x-1/2 w-[95vw] lg:w-auto"
+        >
+          <SwiperSlide>
+            {stepsWithFunctionComponent[0].FC()}
+          </SwiperSlide>
+          <SwiperSlide>
+            {stepsWithFunctionComponent[1].FC()}
+          </SwiperSlide>
+          <SwiperSlide>
+            {stepsWithFunctionComponent[2].FC()}
+          </SwiperSlide>
+        </Swiper>
       </Container>
     </PublicMenuLayout>
   );

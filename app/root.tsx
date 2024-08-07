@@ -10,6 +10,7 @@ import { ColorSchemeScript, createTheme, MantineColorsTuple, MantineProvider } f
 import '@mantine/core/styles.css';
 import '@mantine/dropzone/styles.css';
 import '@mantine/notifications/styles.css';
+import 'swiper/css';
 
 import "./tailwind.css";
 import { LinksFunction } from "@remix-run/node";

@@ -4,12 +4,38 @@ import {
   useStripe,
   useElements
 } from "@stripe/react-stripe-js";
-import { Button } from "@mantine/core";
+import { Box, Button, TextInput } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
+import { useForm } from "@mantine/form";
 
 export const PaymentForm = () => {
   const stripe = useStripe();
   const elements = useElements();
+
+  const payForm = useForm({
+    initialValues: {
+      fullName: '',
+      email: '',
+      cpf: '',
+      phone: '',
+    },
+    validate: {
+      fullName: (value) => {
+        if (!value) return 'Nome completo é obrigatório';
+      },
+      email: (value) => {
+        if (!value) return 'E-mail é obrigatório';
+        if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value)) return 'E-mail inválido';
+      },
+      cpf: (value) => {
+        if (!value) return 'CPF é obrigatório';
+        if (value.length !== 11) return 'CPF inválido';
+      },
+      phone: (value) => {
+        if (value && value.length < 10) return 'Telefone inválido';
+      },
+    }
+  });
 
   const [message, setMessage] = useState<string>();
   const [isLoading, setIsLoading] = useState(false);
@@ -85,23 +111,50 @@ export const PaymentForm = () => {
   };
 
   return (
-    <form id="payment-form" onSubmit={handleSubmit} className="grid gap-4">
-      <PaymentElement
-        id="payment-element"
-        options={{
-          layout: "accordion"
-        }}
+    <form className="grid gap-3" onSubmit={handleSubmit}>
+      <h2 className="text-2xl font-bold">Informações de pagamento</h2>
+      <TextInput
+        placeholder="Nome e sobrenome"
+        required
+        {...payForm.getInputProps('fullName')}
       />
-      <Button
-        id="submit"
-        color="green"
-        loading={isLoading}
-        disabled={isLoading || !stripe || !elements}
-      >
-        Finalizar
-      </Button>
-      {/* Show any error or success messages */}
-      {message && <div id="payment-message">{message}</div>}
+      <TextInput
+        placeholder="E-mail"
+        required
+        {...payForm.getInputProps('email')}
+      />
+
+      <Box className="grid grid-cols-2 gap-4">
+        <TextInput
+          placeholder="CPF"
+          required
+          {...payForm.getInputProps('cpf')}
+        />
+        <TextInput
+          placeholder="Telefone"
+          {...payForm.getInputProps('phone')}
+        />
+      </Box>
+
+      <Box>
+        <PaymentElement
+          id="payment-element"
+          options={{
+            layout: "accordion"
+          }}
+        />
+        <Button
+          id="submit"
+          color="green"
+          loading={isLoading}
+          className="mt-4"
+          disabled={isLoading || !stripe || !elements}
+        >
+          Finalizar
+        </Button>
+        {/* Show any error or success messages */}
+        {message && <div id="payment-message">{message}</div>}
+      </Box>
     </form>
   );
 }

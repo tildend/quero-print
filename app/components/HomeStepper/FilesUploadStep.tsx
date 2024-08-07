@@ -80,14 +80,11 @@ export const FilesUploadStep: FC<Props> = ({ droppedFiles, setDroppedFiles, setS
       maxSize={MAX_FILE_SIZE}
       classNames={{
         root: `
-          relative
-          left-1/2 lg:left-auto
-          w-screen lg:w-full
+          w-full
           group
           bg-gradient-to-b from-[#F3F6FB] to-[#D5DDEC]
           lg:bg-white/75
           shadow-md
-          -translate-x-1/2 lg:-translate-x-0
         `,
       }}
     >
@@ -112,7 +109,7 @@ export const FilesUploadStep: FC<Props> = ({ droppedFiles, setDroppedFiles, setS
           <Divider orientation="horizontal" my="lg" className="lg:hidden" />
 
           <Box className="w-full flex flex-col justify-between opacity-85 pointer-events-auto z-[1]">
-            <List className="w-full text-sm h-[410px] mb-8" spacing="lg">
+            <List className="w-full text-sm lg:h-[410px] mb-8" spacing="lg">
               <ScrollArea
                 data-has-files={!!droppedFiles?.length}
                 data-scroll-at-bottom={!!droppedFiles && scrollPosition.y >= (droppedFiles?.length * 35) - 440}

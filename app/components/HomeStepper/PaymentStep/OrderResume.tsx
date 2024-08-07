@@ -1,11 +1,13 @@
-import { Box, Title, ScrollArea, List, ThemeIcon, Text } from "@mantine/core";
-import { FC } from "react";
+import { Box, Title, ScrollArea, List, ThemeIcon, Text, Button, ActionIcon } from "@mantine/core";
+import { IconEdit } from "@tabler/icons-react";
+import { Dispatch, FC, SetStateAction } from "react";
 import { numToSize } from "~/helpers/numToSize";
 
 type Props = {
   env: {
     PRICE_PER_PAGE: number;
   };
+  setStep: Dispatch<SetStateAction<number>>;
   files: File[];
   totalPages: number;
   isFlex: boolean;
@@ -16,10 +18,10 @@ type Props = {
   hidden?: boolean;
 }
 
-export const OrderResume: FC<Props> = ({ env, files, totalPages, isFlex, shippingTotal, orderTotal, hidden }) => {
+export const OrderResume: FC<Props> = ({ env, setStep, files, totalPages, isFlex, shippingTotal, orderTotal, hidden }) => {
   return (
     <Box className="flex flex-col gap-4 p-6 rounded-lg bg-white/25">
-      <Title order={3}>Resumo do pedido</Title>
+      <Title order={3}>Resumo do pedido <ActionIcon ml="sm" onClick={() => setStep(0)}><IconEdit /></ActionIcon></Title>
       <ScrollArea mah={286} className="grid gap-4">
         <List>
           {files.map((file, i) => (

@@ -1,10 +1,12 @@
-import { Box, Button, TextInput, Checkbox, Textarea, Loader } from "@mantine/core";
+import { Box, Button, TextInput, Checkbox, Textarea, Loader, Title, List } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
-import { IconCheck, IconMapPinFilled } from "@tabler/icons-react";
+import { IconCheck, IconCircleFilled, IconMapPinFilled } from "@tabler/icons-react";
 import { APIProvider, AdvancedMarker, Map } from "@vis.gl/react-google-maps";
 import { Dispatch, FC, SetStateAction, useEffect, useState } from "react";
 import { maskMap, maskString } from "~/helpers/maskString";
+import { AddressOfCoords } from "~/models/AddressOfCoords";
 import { ViaCEPRes } from "~/models/ViaCEP";
 
 type Props = {
@@ -34,7 +36,6 @@ type Props = {
     saveAddr: boolean;
     useLocation: boolean;
   }>>;
-  handleConfirmAddr: () => void;
 }
 
 export const DeliveryPlace: FC<Props> = ({
@@ -44,12 +45,14 @@ export const DeliveryPlace: FC<Props> = ({
   useLocation, setUseLocation,
   currentLocation, setCurrentLocation,
   addrForm,
-  handleConfirmAddr
 }) => {
   useEffect(() => {
     if (navigator.geolocation && useLocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
+      setAddrLoading(true);
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        await updateAddrFromCoords(position.coords);
         setCurrentLocation(position.coords);
+        setAddrLoading(false);
       }, err => {
         console.error(err);
         notifications.show({
@@ -57,6 +60,9 @@ export const DeliveryPlace: FC<Props> = ({
           message: 'Não foi possível obter sua localização',
           color: 'red',
         });
+
+        setUseLocation(false);
+        setAddrLoading(false);
       }, {
         enableHighAccuracy: true,
         timeout: 5000,
@@ -65,10 +71,10 @@ export const DeliveryPlace: FC<Props> = ({
     }
   }, [useLocation]);
 
-  const [viaCEPLoading, setViaCEPLoading] = useState(false);
+  const [addrLoading, setAddrLoading] = useState(false);
   useEffect(() => {
-    if (addrForm.isValid('zip')) {
-      setViaCEPLoading(true);
+    if (!useLocation && addrForm.isValid('zip')) {
+      setAddrLoading(true);
       fetch(`https://viacep.com.br/ws/${addrForm.values.zip}/json/`)
         .then(res => res.json())
         .then((data: ViaCEPRes) => {
@@ -80,25 +86,106 @@ export const DeliveryPlace: FC<Props> = ({
           });
         })
         .catch(console.error)
-        .finally(() => setViaCEPLoading(false));
+        .finally(() => setAddrLoading(false));
     }
   }, [addrForm.values.zip]);
 
-  const formDisabled = viaCEPLoading || useLocation || !addrForm.isValid('zip');
+  const formDisabled = addrLoading || (!useLocation && !addrForm.isValid('zip')) || loading;
 
-  const handleUseLocation = () => {
-    if (useLocation) {
-      // If setting to not use location, restore saved form values
-      const savedValues = window.localStorage.getItem('addrForm');
-      if (savedValues) {
-        addrForm.setValues(JSON.parse(savedValues));
-        window.localStorage.removeItem('addrForm');
-      }
-    } else {
-      window.localStorage.setItem('addrForm', JSON.stringify(addrForm.values));
-      addrForm.reset();
+  const updateAddrFromCoords = async (coords = currentLocation) => {
+    if (coords) {
+      return await fetch(`/api/geo/address-from-coords?lat=${coords.latitude}&lon=${coords.longitude}`)
+        .then(res => res.json())
+        .then((data: AddressOfCoords) => {
+          addrForm.setValues({
+            street: data.street,
+            number: data.number,
+            neighborhood: data.neighborhood,
+            city: data.city,
+            state: data.state,
+            zip: data.zip.replace(/\D/g, ''),
+          });
+
+          return data;
+        })
     }
 
+    return false;
+  }
+
+  const handleConfirmAddr = async () => {
+    setAddrLoading(true);
+
+    let addrValues = addrForm.getValues();
+    if (addrForm.values.useLocation && currentLocation) {
+      const addrValid = await updateAddrFromCoords()
+        .then(addrFromDB => {
+          addrValues = {
+            ...addrValues,
+            ...addrFromDB,
+            useLocation: true
+          };
+
+          return true;
+        })
+        .catch(err => {
+          console.error(err);
+          modals.openConfirmModal({
+            title: 'Erro',
+            children: 'Não foi possível obter o endereço',
+            color: 'red'
+          });
+
+          return false;
+        });
+
+      setAddrLoading(false);
+      if (!addrValid) return;
+    }
+
+    setAddrLoading(false);
+    modals.openConfirmModal({
+      title: <Title order={2}>Confirme o endereço</Title>,
+      children: (
+        <List
+          spacing="md"
+          icon={<IconCircleFilled className="text-slate-400" size={8} />}
+        >
+          <List.Item>
+            <span className="font-semibold mr-2">Rua:</span>
+            {addrValues.street}, {addrValues.number}
+          </List.Item>
+          <List.Item>
+            <span className="font-semibold mr-2">Complemento:</span>
+            {addrValues.complement || 'Sem complemento'}
+          </List.Item>
+          <List.Item>
+            <span className="font-semibold mr-2">Bairro:</span>
+            {addrValues.neighborhood}
+          </List.Item>
+          <List.Item>
+            <span className="font-semibold mr-2">Estado:</span>
+            {addrValues.city} - {addrValues.state}
+          </List.Item>
+          <List.Item>
+            <span className="font-semibold mr-2">CEP:</span>
+            {addrValues.zip}
+          </List.Item>
+          <List.Item>
+            <span className="font-semibold mr-2">Detalhes:</span>
+            {addrValues.observation || 'Sem detalhes'}
+          </List.Item>
+        </List>
+      ),
+      labels: {
+        cancel: 'Cancelar',
+        confirm: 'Confirmar'
+      },
+      onConfirm: () => setStep(2)
+    });
+  }
+
+  const handleUseLocation = async () => {
     addrForm.setFieldValue('useLocation', !useLocation);
     setUseLocation(curr => !curr);
   }
@@ -107,11 +194,11 @@ export const DeliveryPlace: FC<Props> = ({
     <Box
       data-use-location={useLocation ? 'true' : 'false'}
       className="
-        grid gap-4 mt-6 lg:mt-12
+        grid gap-4
         data-[use-location=true]:lg:grid-cols-[1fr_.5fr]
       "
     >
-      <form onSubmit={addrForm.onSubmit(handleConfirmAddr)} className="grid gap-4">
+      <form onSubmit={addrForm.onSubmit(handleConfirmAddr)} className="grid gap-4 order-2 lg:order-1 w-full max-w-xl mx-auto">
         <Box className="grid gap-4 items-center p-4 lg:p-8 grid-cols-[1fr_auto_1fr] bg-white/25 rounded-lg">
           <Button
             px="xs"
@@ -121,8 +208,8 @@ export const DeliveryPlace: FC<Props> = ({
             onClick={handleUseLocation}
             loading={loading}
           >
-            Usar <span className="hidden lg:inline">localização atual</span>
-            <span className="lg:hidden">&nbsp;GPS</span>
+            Usar&nbsp;<span className="hidden lg:inline">localização atual</span>
+            <span className="lg:hidden">GPS</span>
             {useLocation ? <IconCheck color="green" className="ml-3" /> : <IconMapPinFilled className="ml-3" />}
           </Button>
           <span className="block">ou</span>
@@ -135,9 +222,8 @@ export const DeliveryPlace: FC<Props> = ({
               const { value } = event.currentTarget;
               addrForm.setFieldValue('zip', value.replace(/\D/g, ''));
             }}
-            disabled={useLocation}
-            rightSection={viaCEPLoading && <Loader size="sm" />}
-            required={!formDisabled}
+            rightSection={addrLoading && <Loader size="sm" />}
+            required={!useLocation}
           />
         </Box>
 
@@ -147,14 +233,14 @@ export const DeliveryPlace: FC<Props> = ({
             type="text"
             placeholder="Rua"
             disabled={formDisabled}
-            required={!formDisabled}
+            required={!useLocation}
           />
           <TextInput
             {...addrForm.getInputProps('number')}
             type="text"
             placeholder="Número"
             disabled={formDisabled}
-            required={!formDisabled}
+            required={!useLocation}
           />
           <TextInput
             {...addrForm.getInputProps('complement')}
@@ -167,21 +253,21 @@ export const DeliveryPlace: FC<Props> = ({
             type="text"
             placeholder="Bairro"
             disabled={formDisabled}
-            required={!formDisabled}
+            required={!useLocation}
           />
           <TextInput
             {...addrForm.getInputProps('city')}
             type="text"
             placeholder="Cidade"
             disabled={formDisabled}
-            required={!formDisabled}
+            required={!useLocation}
           />
           <TextInput
             {...addrForm.getInputProps('state')}
             type="text"
             placeholder="Estado"
             disabled={formDisabled}
-            required={!formDisabled}
+            required={!useLocation}
           />
           <Checkbox
             {...addrForm.getInputProps('saveAddr')}
@@ -194,9 +280,9 @@ export const DeliveryPlace: FC<Props> = ({
           {...addrForm.getInputProps('observation')}
           minRows={4}
           autosize
-          label="Observações"
-          placeholder="Descreva detalhes sobre o local exato onde deseja que a entrega seja feita, ou qualquer outra informação relevante."
-          minLength={6}
+          label="Detalhes para a entrega"
+          placeholder="Ex: Portão branco | Ao lado esquerdo do mercadinho | Tocar o interfone | Cartório do lado esquerdo | Não dobrar | Imprimir em tamanho X, etc."
+          minLength={4}
           required={useLocation}
         />
 
@@ -221,20 +307,24 @@ export const DeliveryPlace: FC<Props> = ({
         </Box>
       </form>
 
-      {useLocation && <APIProvider apiKey={env.GOOGLE_MAPS_API_KEY}>
-        <Map
-          className="w-full h-[485px] shadow-md rounded-lg"
-          center={{ lat: currentLocation?.latitude || -23.5505, lng: currentLocation?.longitude || -46.6333 }}
-          zoom={18}
-          gestureHandling=""
-          disableDefaultUI={true}
-          mapId="e7c6fd1bdf3b30ca"
-          controlled
-          reuseMaps
-        >
-          {currentLocation && <AdvancedMarker position={{ lat: currentLocation.latitude, lng: currentLocation.longitude }} />}
-        </Map>
-      </APIProvider>}
+      {useLocation && (
+        <Box className="order-1 lg:order-2 pointer-events-none">
+          <APIProvider apiKey={env.GOOGLE_MAPS_API_KEY}>
+            <Map
+              className="w-full h-[200px] lg:h-[485px] shadow-md rounded-lg"
+              center={{ lat: currentLocation?.latitude || -23.5505, lng: currentLocation?.longitude || -46.6333 }}
+              zoom={18}
+              gestureHandling=""
+              disableDefaultUI={true}
+              mapId="e7c6fd1bdf3b30ca"
+              controlled
+              reuseMaps
+            >
+              {currentLocation && <AdvancedMarker position={{ lat: currentLocation.latitude, lng: currentLocation.longitude }} />}
+            </Map>
+          </APIProvider>
+        </Box>
+      )}
     </Box>
   );
 }
