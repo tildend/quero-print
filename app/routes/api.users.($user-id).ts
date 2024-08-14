@@ -23,7 +23,7 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
         }
 
         const newUser = await request.json() as User;
-        if (!newUser.cpf || newUser.cpf.length !== 11) throw json({ error: "CPF vazio ou inválido" }, { status: 400 });
+        if (!newUser.document || newUser.document.length !== 11) throw json({ error: "CPF vazio ou inválido" }, { status: 400 });
         if (!newUser.email || !newUser.email.match(/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$/)) throw json({ error: "Email vazio ou inválido" }, { status: 400 });
         if (!newUser.name) throw json({ error: "Nome é obrigatório" }, { status: 400 });
         if (!newUser.password || newUser.password.length < 6) throw json({ error: "Senha vazia ou menor que 6 caracteres" }, { status: 400 });

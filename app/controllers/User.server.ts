@@ -1,15 +1,16 @@
 import { db } from "~/drivers/mongodb"
 import { getOrders } from "./Orders.server";
 import { User } from "~/models/User";
+import { ObjectId } from "mongodb";
 
 export const userExists = async (userId: string) => {
-  const user = await db.collection<User>("users").countDocuments({_id: userId});
+  const user = await db.collection<User>("users").countDocuments({_id: new ObjectId(userId)});
   return user > 0;
 }
 
 export const getUser = async (userId: string) => {
   const user = await db.collection<User>("users").findOne({
-    _id: userId
+    _id: new ObjectId(userId)
   });
 
   if (!user) {
@@ -25,14 +26,16 @@ export const getUserOrders = async (userId: string) => {
 
 export const createUser = async (user: User) => {
   const users = db.collection<User>("users");
-  await users.insertOne(user);
-  return user;
+  const newUserID = await users.insertOne(user);
+  const newUser = await users.findOne({_id: newUserID.insertedId});
+  
+  return newUser;
 }
 
 export const updateUser = async (userId: string, user: User) => {
   const users = db.collection<User>("users");
   return await users.updateOne({
-    _id: userId
+    _id: new ObjectId(userId)
   }, {
     $set: user
   });
@@ -41,7 +44,7 @@ export const updateUser = async (userId: string, user: User) => {
 export const deleteUser = async (userId: string) => {
   const users = db.collection<User>("users");
   return await users.deleteOne({
-    _id: userId
+    _id: new ObjectId(userId)
   });
 }
 
@@ -57,9 +60,9 @@ export const getUserByEmail = async (email: string) => {
   return user;
 }
 
-export const getUserByCpf = async (cpf: string) => {
+export const getUserByDocument = async (document: string) => {
   const user = await db.collection<User>("users").findOne({
-    cpf
+    document
   });
 
   if (!user) {

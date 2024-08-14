@@ -1,82 +1,52 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FC, FormEvent, useEffect, useState } from "react";
 import {
   PaymentElement,
   useStripe,
   useElements
 } from "@stripe/react-stripe-js";
-import { Box, Button, TextInput } from "@mantine/core";
+import { Box, Button, TextInput, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { useForm } from "@mantine/form";
+import type { UseFormReturnType } from "@mantine/form";
+import { modals } from "@mantine/modals";
+import { Link } from "@remix-run/react";
+import { getOrder } from "~/controllers/Orders.server";
+import { useOrderID } from "~/hooks/useOrder";
+import { maskMap, maskString } from "~/helpers/maskString";
 
-export const PaymentForm = () => {
+type Props = {
+  payForm: UseFormReturnType<{
+    fullName: string;
+    email: string;
+    document: string;
+    phone: string;
+  }, (values: {
+    fullName: string;
+    email: string;
+    document: string;
+    phone: string;
+  }) => {
+    fullName: string;
+    email: string;
+    document: string;
+    phone: string;
+  }>
+  clientSecret: string,
+  handleSubmitPurchase: (paymentTx: string) => void;
+}
+
+export const PaymentForm: FC<Props> = ({ payForm, clientSecret, handleSubmitPurchase }) => {
   const stripe = useStripe();
   const elements = useElements();
 
-  const payForm = useForm({
-    initialValues: {
-      fullName: '',
-      email: '',
-      cpf: '',
-      phone: '',
-    },
-    validate: {
-      fullName: (value) => {
-        if (!value) return 'Nome completo é obrigatório';
-      },
-      email: (value) => {
-        if (!value) return 'E-mail é obrigatório';
-        if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value)) return 'E-mail inválido';
-      },
-      cpf: (value) => {
-        if (!value) return 'CPF é obrigatório';
-        if (value.length !== 11) return 'CPF inválido';
-      },
-      phone: (value) => {
-        if (value && value.length < 10) return 'Telefone inválido';
-      },
-    }
-  });
+  const { orderID } = useOrderID();
 
   const [message, setMessage] = useState<string>();
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    if (!stripe) {
-      return;
-    }
-
-    const clientSecret = new URLSearchParams(window.location.search).get(
-      "payment_intent_client_secret"
-    );
-
-    if (!clientSecret) {
-      return;
-    }
-
-    stripe.retrievePaymentIntent(clientSecret).then(data => {
-      switch (data.paymentIntent?.status) {
-        case "succeeded":
-          setMessage("Payment succeeded!");
-          break;
-        case "processing":
-          setMessage("Your payment is processing.");
-          break;
-        case "requires_payment_method":
-          setMessage("Your payment was not successful, please try again.");
-          break;
-        default:
-          setMessage("Something went wrong.");
-          break;
-      }
-    });
-  }, [stripe]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!stripe || !elements) {
-      // Stripe.js hasn't yet loaded.
-      // Make sure to disable form submission until Stripe.js has loaded.
       notifications.show({
         title: "Tente novamente",
         message: "Pagamento temporariamente indisponível",
@@ -91,23 +61,100 @@ export const PaymentForm = () => {
       elements,
       redirect: "if_required",
       confirmParams: {
-        // Make sure to change this to your payment completion page
+        receipt_email: payForm.values.email,
         return_url: `${window.location.origin}/payment-complete`,
       },
     });
 
-    // This point will only be reached if there is an immediate error when
-    // confirming the payment. Otherwise, your customer will be redirected to
-    // your `return_url`. For some payment methods like iDEAL, your customer will
-    // be redirected to an intermediate site first to authorize the payment, then
-    // redirected to the `return_url`.
     if (error?.type === "card_error" || error?.type === "validation_error") {
+      console.error(`😱PAYMENT ERROR: `, error);
       setMessage(error.message);
-    } else {
-      setMessage("An unexpected error occurred.");
     }
 
-    setIsLoading(false);
+    // PAYMENT SUCCEEDED
+
+    if (!stripe || !clientSecret || !orderID || !payForm.isValid()) {
+      notifications.show({
+        title: "Tente novamente",
+        message: "Pagamento temporariamente indisponível",
+        color: "yellow"
+      })
+      return;
+    }
+
+    stripe.retrievePaymentIntent(clientSecret).then(data => {
+      console.log(`🔔PAYMENT DATA: `, data);
+      switch (data.paymentIntent?.status) {
+        case "succeeded":
+          handleSubmitPurchase(data.paymentIntent.id);
+
+          modals.open({
+            title: "Pagamento concluído",
+            children: (
+              <Box className="grid gap-4">
+                <Title order={2}>Pedido confirmado!</Title>
+                <Button
+                  component={Link}
+                  to={`/orders?id=${orderID}`}
+                  variant="light"
+                >
+                  Acompanhar pedido
+                </Button>
+              </Box>
+            )
+          });
+          break;
+        case "processing":
+          modals.open({
+            title: "Processando pagamento",
+            children: (
+              <Box className="grid gap-4">
+                <p>Seu pagamento está sendo processado.</p>
+                <Button
+                  component={Link}
+                  to={`/orders?id=${orderID}`}
+                  variant="light"
+                >
+                  Acompanhar pedido
+                </Button>
+              </Box>
+            )
+          });
+          break;
+        case "requires_payment_method":
+          modals.open({
+            title: "Erro no pagamento",
+            children: (
+              <Box className="grid gap-4">
+                <p>Seu pagamento não foi processado.</p>
+                <Button
+                  variant="light"
+                  onClick={() => modals.closeAll()}
+                >
+                  Tentar novamente
+                </Button>
+              </Box>
+            )
+          });
+          break;
+        default:
+          modals.open({
+            title: "Erro no pagamento",
+            children: (
+              <Box className="grid gap-4">
+                <p>Seu pagamento não foi processado.</p>
+                <Button
+                  variant="light"
+                  onClick={() => modals.closeAll()}
+                >
+                  Tentar novamente
+                </Button>
+              </Box>
+            )
+          });
+          break;
+      }
+    });
   };
 
   return (
@@ -115,24 +162,41 @@ export const PaymentForm = () => {
       <h2 className="text-2xl font-bold">Informações de pagamento</h2>
       <TextInput
         placeholder="Nome e sobrenome"
+        type="name"
+        itemType="name"
         required
         {...payForm.getInputProps('fullName')}
       />
       <TextInput
         placeholder="E-mail"
+        type="email"
         required
         {...payForm.getInputProps('email')}
       />
 
       <Box className="grid grid-cols-2 gap-4">
         <TextInput
-          placeholder="CPF"
+          placeholder="CPF/CNPj"
+          inputMode="numeric"
           required
-          {...payForm.getInputProps('cpf')}
+          {...payForm.getInputProps('document')}
+          value={maskString(payForm.values.document, payForm.values.document.length <= 11 ? maskMap.cpf : maskMap.cnpj)}
+          onChange={(event) => {
+            const { value } = event.currentTarget;
+            payForm.setFieldValue('document', value.replace(/\D/g, ''));
+          }}
         />
         <TextInput
           placeholder="Telefone"
+          type="tel"
+          inputMode="numeric"
           {...payForm.getInputProps('phone')}
+          value={maskString(payForm.values.phone, maskMap.tel)}
+          onChange={(event) => {
+            const { value } = event.currentTarget;
+            payForm.setFieldValue('phone', value.replace(/\D/g, ''));
+          }}
+          required
         />
       </Box>
 
@@ -146,6 +210,7 @@ export const PaymentForm = () => {
         <Button
           id="submit"
           color="green"
+          type="submit"
           loading={isLoading}
           className="mt-4"
           disabled={isLoading || !stripe || !elements}

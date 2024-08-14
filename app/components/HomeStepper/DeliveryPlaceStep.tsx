@@ -36,6 +36,8 @@ type Props = {
     saveAddr: boolean;
     useLocation: boolean;
   }>>;
+
+  handleConfirmAddress: () => void;
 }
 
 export const DeliveryPlace: FC<Props> = ({
@@ -45,7 +47,10 @@ export const DeliveryPlace: FC<Props> = ({
   useLocation, setUseLocation,
   currentLocation, setCurrentLocation,
   addrForm,
+  handleConfirmAddress
 }) => {
+  const [addrLoading, setAddrLoading] = useState(false);
+
   useEffect(() => {
     if (navigator.geolocation && useLocation) {
       setAddrLoading(true);
@@ -71,7 +76,6 @@ export const DeliveryPlace: FC<Props> = ({
     }
   }, [useLocation]);
 
-  const [addrLoading, setAddrLoading] = useState(false);
   useEffect(() => {
     if (!useLocation && addrForm.isValid('zip')) {
       setAddrLoading(true);
@@ -113,7 +117,7 @@ export const DeliveryPlace: FC<Props> = ({
     return false;
   }
 
-  const handleConfirmAddr = async () => {
+  const handleSubmit = async () => {
     setAddrLoading(true);
 
     let addrValues = addrForm.getValues();
@@ -145,7 +149,7 @@ export const DeliveryPlace: FC<Props> = ({
 
     setAddrLoading(false);
     modals.openConfirmModal({
-      title: <Title order={2}>Confirme o endereço</Title>,
+      title: 'Confirme o endereço',
       children: (
         <List
           spacing="md"
@@ -181,7 +185,7 @@ export const DeliveryPlace: FC<Props> = ({
         cancel: 'Cancelar',
         confirm: 'Confirmar'
       },
-      onConfirm: () => setStep(2)
+      onConfirm: handleConfirmAddress
     });
   }
 
@@ -198,7 +202,7 @@ export const DeliveryPlace: FC<Props> = ({
         data-[use-location=true]:lg:grid-cols-[1fr_.5fr]
       "
     >
-      <form onSubmit={addrForm.onSubmit(handleConfirmAddr)} className="grid gap-4 order-2 lg:order-1 w-full max-w-xl mx-auto">
+      <form onSubmit={addrForm.onSubmit(handleSubmit)} className="grid gap-4 order-2 lg:order-1 w-full max-w-xl mx-auto">
         <Box className="grid gap-4 items-center p-4 lg:p-8 grid-cols-[1fr_auto_1fr] bg-white/25 rounded-lg">
           <Button
             px="xs"
@@ -291,6 +295,7 @@ export const DeliveryPlace: FC<Props> = ({
             onClick={() => setStep(0)}
             variant="light"
             size="md"
+            disabled={formDisabled}
           >
             Voltar
           </Button>
@@ -300,7 +305,7 @@ export const DeliveryPlace: FC<Props> = ({
             color="green"
             size="md"
             loading={loading}
-            disabled={addrForm.isDirty() && Object.values(addrForm.isValid).some(valid => !valid)}
+            disabled={formDisabled || (addrForm.isDirty() && Object.values(addrForm.isValid).some(valid => !valid))}
           >
             Continuar
           </Button>

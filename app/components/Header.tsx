@@ -14,7 +14,7 @@ export const Header: FC<Props> = ({ dealText }) => {
       </Container>
     </Box>}
     <Container className="h-20 flex items-center justify-between">
-      <Link to="/">
+      <Link to="/" reloadDocument>
         <Title order={1} className="relative w-fit text-4xl leading-[0.5]" c="print" ta="right">
           Quero<br />
           <span className="text-xl font-black italic text-daintree leading-[0.5]">Print!</span>

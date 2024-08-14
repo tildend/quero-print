@@ -1,19 +1,19 @@
+import { ObjectId } from "mongodb";
+
 export type User = {
-  _id: string;
   name: string;
   email: string;
   password: string;
   phone: string;
-  cpf: string;
-  birthDate: Date;
+  document: string;
+  birthDate?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export type Address = {
-  _id: number;
   default: boolean;
-  userId: number;
+  userId: ObjectId;
   street: string;
   number: string;
   complement: string;

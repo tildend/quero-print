@@ -1,18 +1,19 @@
 import type { MetaFunction } from "@remix-run/node";
 import { PublicMenuLayout } from "~/layouts/PublicMenu";
 
-import { Box, Container, Divider } from "@mantine/core";
+import { Box, Button, Container, Divider, Text } from "@mantine/core";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { json, useLoaderData } from "@remix-run/react";
+import { json, Link, useLoaderData } from "@remix-run/react";
 import { FilesUploadStep } from "~/components/HomeStepper/FilesUploadStep";
 import { DeliveryPlace } from "~/components/HomeStepper/DeliveryPlaceStep";
 import { useForm } from "@mantine/form";
 import { PaymentStep } from "~/components/HomeStepper/PaymentStep";
 import { allowFlex } from "~/helpers/allowFlex";
-import { loadStripe } from "@stripe/stripe-js";
 import { Swiper, SwiperSlide } from "swiper/react";
 import SwiperInstance from "swiper";
 import { IconCheck } from "@tabler/icons-react";
+import { modals } from "@mantine/modals";
+import { useOrderID } from "~/hooks/useOrder";
 
 export const meta: MetaFunction = () => {
   return [
@@ -81,10 +82,14 @@ export const loader = () => {
 export default function Index() {
   const env = useLoaderData<typeof loader>();
 
+  const { orderID, clearOrderID } = useOrderID();
+
   const stepSwiper = useRef<SwiperInstance>();
   const stepCompSwiper = useRef<SwiperInstance>();
   const [step, setStep] = useState(0);
   useEffect(() => {
+    window.location.hash = `step-${step}`;
+
     if (stepSwiper.current && stepCompSwiper.current) {
       stepSwiper.current.slideTo(step);
       stepCompSwiper.current.slideTo(step);
@@ -134,13 +139,39 @@ export default function Index() {
     }
   });
 
+  const payForm = useForm({
+    mode: 'controlled',
+    initialValues: {
+      fullName: '',
+      email: '',
+      document: '',
+      phone: '',
+    },
+    validate: {
+      fullName: (value) => {
+        if (!value) return 'Nome completo é obrigatório';
+      },
+      email: (value) => {
+        if (!value) return 'E-mail é obrigatório';
+        if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value)) return 'E-mail inválido';
+      },
+      document: (value) => {
+        if (!value) return 'Documento é obrigatório';
+        if (value.length !== 11) return 'Documento inválido';
+      },
+      phone: (value) => {
+        if (value && value.length < 10) return 'Telefone inválido';
+      },
+    }
+  });
+
   const [droppedFiles, setDroppedFiles] = useState<File[]>();
   const [totalPages, setTotalPages] = useState(0);
 
   const printTotal = totalPages * env.PRICE_PER_PAGE;
   const shippingDistance = useMemo(() => {
     // Distance from base to destination
-    if (addrForm.values.useLocation && coordinates?.latitude) {
+    if (coordinates?.latitude) {
       const deg = Math.sqrt(
         Math.pow(coordinates.latitude - env.BASE_LAT, 2) +
         Math.pow(coordinates.longitude - env.BASE_LON, 2)
@@ -157,9 +188,99 @@ export default function Index() {
     isFlex ? (
       env.PRICE_FLEX + ((shippingDistance / 1000) * env.PRICE_FLEX_PER_KM)
     ) : env.PRICE_SEDEX_BASE
-  ) : undefined;
+  ) : (isFlex ? Number(env.PRICE_FLEX) * 2.5 : Number(env.PRICE_SEDEX_BASE));
 
   const orderTotal = shippingTotal && printTotal + shippingTotal;
+
+  const [clientSecret, setClientSecret] = useState('');
+  const handleConfirmAddress = async () => {
+    if (!orderTotal) {
+      return;
+    }
+
+    const response = await fetch('/api/payment-intent', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        amount: Math.round(orderTotal * 100),
+        currency: 'brl',
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.clientSecret) {
+      setClientSecret(data.clientSecret);
+      setStep(2);
+    }
+  }
+
+  const handleSubmitPurchase = async (paymentTx: string) => {
+    setLoading(true);
+
+    // Send order to backend
+    const response = await fetch('/api/orders', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        orderID,
+        paymentTx,
+        files: droppedFiles,
+        totalPages,
+        printTotal,
+        shippingTotal,
+        orderTotal,
+        isFlex,
+        address: {
+          useLocation: addrForm.values.useLocation,
+          street: addrForm.values.street,
+          number: addrForm.values.number,
+          complement: addrForm.values.complement,
+          neighborhood: addrForm.values.neighborhood,
+          city: addrForm.values.city,
+          state: addrForm.values.state,
+          zip: addrForm.values.zip,
+          observation: addrForm.values.observation,
+          saveAddr: addrForm.values.saveAddr
+        },
+        payment: {
+          fullName: payForm.values.fullName,
+          email: payForm.values.email,
+          document: payForm.values.document,
+          phone: payForm.values.phone
+        }
+      })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      modals.open({
+        title: 'Pedido realizado',
+        children: (
+          <Box className="grid gap-4">
+            <Text>Seu pedido foi realizado com sucesso! #<Text fw="bold">{data.orderID}</Text></Text>
+            <Text>Em breve você receberá um e-mail com as informações do seu pedido.</Text>
+            <Button
+              component={Link}
+              to="/meus-pedidos"
+              fullWidth
+              onClick={clearOrderID}
+            >
+              Ver meus pedidos
+            </Button>
+          </Box>
+        )
+      });
+    } else {
+      console.error(response);
+    }
+
+    setLoading(false);
+  }
 
   const stepsWithFunctionComponent = [
     {
@@ -190,6 +311,7 @@ export default function Index() {
           setCurrentLocation={setCoordinates}
 
           addrForm={addrForm}
+          handleConfirmAddress={handleConfirmAddress}
 
           loading={loading}
         />
@@ -206,11 +328,25 @@ export default function Index() {
           setStep={setStep}
           orderTotal={orderTotal}
           shippingTotal={shippingTotal}
+          payForm={payForm}
+          handleSubmitPurchase={handleSubmitPurchase}
+          clientSecret={clientSecret}
           env={env}
         />
       )
     }
   ];
+
+  useEffect(() => {
+    if (window.location.hash) {
+      const step = Number(window.location.hash.replace('#step-', ''));
+      if (step >= 0 && step < stepsWithFunctionComponent.length) {
+        setStep(step);
+      }
+    } else {
+      setStep(0);
+    }
+  }, []);
 
   return (
     <PublicMenuLayout>
