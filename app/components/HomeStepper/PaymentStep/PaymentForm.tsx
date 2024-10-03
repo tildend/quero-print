@@ -51,7 +51,8 @@ export const PaymentForm: FC<Props> = ({ payForm, clientSecret, handleSubmitPurc
         title: "Tente novamente",
         message: "Pagamento temporariamente indisponível",
         color: "yellow"
-      })
+      });
+
       return;
     }
 
@@ -69,6 +70,8 @@ export const PaymentForm: FC<Props> = ({ payForm, clientSecret, handleSubmitPurc
     if (error?.type === "card_error" || error?.type === "validation_error") {
       console.error(`😱PAYMENT ERROR: `, error);
       setMessage(error.message);
+      setIsLoading(false);
+      return;
     }
 
     // PAYMENT SUCCEEDED
@@ -78,11 +81,13 @@ export const PaymentForm: FC<Props> = ({ payForm, clientSecret, handleSubmitPurc
         title: "Tente novamente",
         message: "Pagamento temporariamente indisponível",
         color: "yellow"
-      })
+      });
+
+      setIsLoading(false);
       return;
     }
 
-    stripe.retrievePaymentIntent(clientSecret).then(data => {
+    await stripe.retrievePaymentIntent(clientSecret).then(data => {
       console.log(`🔔PAYMENT DATA: `, data);
       switch (data.paymentIntent?.status) {
         case "succeeded":
@@ -95,7 +100,7 @@ export const PaymentForm: FC<Props> = ({ payForm, clientSecret, handleSubmitPurc
                 <Title order={2}>Pedido confirmado!</Title>
                 <Button
                   component={Link}
-                  to={`/orders?id=${orderID}`}
+                  to={`/perfil/#orders?id=${orderID}`}
                   variant="light"
                 >
                   Acompanhar pedido
@@ -155,6 +160,8 @@ export const PaymentForm: FC<Props> = ({ payForm, clientSecret, handleSubmitPurc
           break;
       }
     });
+
+    setIsLoading(false);
   };
 
   return (

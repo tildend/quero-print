@@ -1,19 +1,27 @@
 import { ObjectId } from "mongodb";
 
+export enum ROLE {
+  USER = "user",
+  ADMIN = "admin",
+  SUPPORT = "support",
+}
+
 export type User = {
   name: string;
   email: string;
   password: string;
   phone: string;
   document: string;
-  birthDate?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  role: ROLE;
+  birthDate?: Date | string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
 export type Address = {
   default: boolean;
-  userId: ObjectId;
+  userId: ObjectId | string;
+  name: string;
   street: string;
   number: string;
   complement: string;
@@ -21,7 +29,8 @@ export type Address = {
   city: string;
   state: string;
   zip: string;
+  country: string;
   observation: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }

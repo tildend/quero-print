@@ -1,4 +1,4 @@
-import type { MetaFunction } from "@remix-run/node";
+import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { PublicMenuLayout } from "~/layouts/PublicMenu";
 
 import { Box, Button, Container, Divider, Text } from "@mantine/core";
@@ -14,6 +14,7 @@ import SwiperInstance from "swiper";
 import { IconCheck } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 import { useOrderID } from "~/hooks/useOrder";
+import { theSession } from "./sessions";
 
 export const meta: MetaFunction = () => {
   return [
@@ -43,7 +44,9 @@ export const meta: MetaFunction = () => {
   ];
 };
 
-export const loader = () => {
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const { userId, user } = await theSession(request);
+
   if (!(
     process.env.GOOGLE_MAPS_API_KEY &&
     process.env.PRICE_PER_PAGE &&
@@ -64,23 +67,27 @@ export const loader = () => {
   }
 
   return json({
-    GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
-    PRICE_PER_PAGE: Number(process.env.PRICE_PER_PAGE),
-    STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY,
+    user,
+    userId,
+    env: {
+      GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
+      PRICE_PER_PAGE: Number(process.env.PRICE_PER_PAGE),
+      STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY,
 
-    PRICE_FLEX: Number(process.env.PRICE_FLEX),
-    PRICE_SEDEX_BASE: Number(process.env.PRICE_SEDEX_BASE),
-    PRICE_FLEX_PER_KM: Number(process.env.PRICE_FLEX_PER_KM),
+      PRICE_FLEX: Number(process.env.PRICE_FLEX),
+      PRICE_SEDEX_BASE: Number(process.env.PRICE_SEDEX_BASE),
+      PRICE_FLEX_PER_KM: Number(process.env.PRICE_FLEX_PER_KM),
 
-    BASE_LAT: Number(process.env.BASE_LAT),
-    BASE_LON: Number(process.env.BASE_LON),
+      BASE_LAT: Number(process.env.BASE_LAT),
+      BASE_LON: Number(process.env.BASE_LON),
 
-    GEOAPIFI_KEY: process.env.GEOAPIFI_KEY
+      GEOAPIFI_KEY: process.env.GEOAPIFI_KEY
+    }
   });
 }
 
 export default function Index() {
-  const env = useLoaderData<typeof loader>();
+  const { env, userId, user } = useLoaderData<typeof loader>();
 
   const { orderID, clearOrderID } = useOrderID();
 
@@ -142,10 +149,10 @@ export default function Index() {
   const payForm = useForm({
     mode: 'controlled',
     initialValues: {
-      fullName: '',
-      email: '',
-      document: '',
-      phone: '',
+      fullName: user?.name || '',
+      email: user?.email || '',
+      document: user?.document || '',
+      phone: user?.phone || '',
     },
     validate: {
       fullName: (value) => {
@@ -227,6 +234,7 @@ export default function Index() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
+        userId,
         orderID,
         paymentTx,
         files: droppedFiles,
@@ -266,7 +274,7 @@ export default function Index() {
             <Text>Em breve você receberá um e-mail com as informações do seu pedido.</Text>
             <Button
               component={Link}
-              to="/meus-pedidos"
+              to="/perfil/#orders"
               fullWidth
               onClick={clearOrderID}
             >
@@ -349,7 +357,7 @@ export default function Index() {
   }, []);
 
   return (
-    <PublicMenuLayout>
+    <PublicMenuLayout userId={userId}>
       <Container className="pb-16">
         <Swiper
           slidesPerView="auto"

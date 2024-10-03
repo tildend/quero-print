@@ -4,6 +4,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLoaderData,
 } from "@remix-run/react";
 import { ColorSchemeScript, createTheme, MantineColorsTuple, MantineProvider } from "@mantine/core";
 
@@ -13,9 +14,11 @@ import '@mantine/notifications/styles.css';
 import 'swiper/css';
 
 import "./tailwind.css";
-import { LinksFunction } from "@remix-run/node";
+import { LinksFunction, LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { Notifications } from "@mantine/notifications";
 import { ModalsProvider } from "@mantine/modals";
+import { theSession } from "./routes/sessions";
+import { createContext } from "react";
 
 const print: MantineColorsTuple = [
   '#eef3ff', // zircon
@@ -38,18 +41,26 @@ const theme = createTheme({
   fontFamily: 'Outfit, sans-serif'
 });
 
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const { userId } = await theSession(request);
+  return { userId };
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        {/* No index no robots */}
+        <meta name="robots" content="noindex, nofollow" />
         <Meta />
         <Links />
         <ColorSchemeScript />
       </head>
       <body
         className="
+          w-full
+          min-h-screen
           bg-gradient-to-br
           from-[var(--mantine-color-print-0)]
           to-[var(--mantine-color-print-6)]
@@ -81,3 +92,8 @@ export const links: LinksFunction = () => [
   { rel: "icon", type: "image/png", sizes: "16x16", href: "/favicon-16x16.png" },
   { rel: "manifest", href: "/site.webmanifest" },
 ];
+
+export const meta: MetaFunction = () => [
+  { charSet: 'utf-8' },
+  { name: 'viewport', content: 'width=device-width, initial-scale=1' }
+]

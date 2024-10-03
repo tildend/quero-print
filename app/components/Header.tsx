@@ -4,15 +4,16 @@ import { FC } from "react";
 
 type Props = {
   dealText?: string;
+  userId?: string;
 }
 
-export const Header: FC<Props> = ({ dealText }) => {
+export const Header: FC<Props> = ({ dealText, userId }) => {
   return <>
-    {!!dealText && <Box className="h-8 bg-yellow-400">
+    <Box className="h-8 bg-yellow-400" hidden={!dealText}>
       <Container>
-        <Text className="py-2 text-center text-sm font-bold" dangerouslySetInnerHTML={{ __html: dealText }} />
+        <Text className="py-2 text-center text-sm font-bold" dangerouslySetInnerHTML={{ __html: dealText! }} />
       </Container>
-    </Box>}
+    </Box>
     <Container className="h-20 flex items-center justify-between">
       <Link to="/" reloadDocument>
         <Title order={1} className="relative w-fit text-4xl leading-[0.5]" c="print" ta="right">
@@ -22,9 +23,10 @@ export const Header: FC<Props> = ({ dealText }) => {
       </Link>
 
       <Group gap='md'>
-        <Link to='/contato'>Contato</Link>
-        <Divider orientation="vertical" />
-        <Link to='/login'>Login</Link>
+        <Link to='/perfil' style={{ display: userId ? 'block' : 'none' }}>Perfil</Link>
+        <Divider orientation="vertical" hidden={!userId} />
+        <Link hidden={!userId} color="red" to='/logout'>Logout</Link>
+        <Link to='/login' style={{ display: userId ? 'none' : 'block' }}>Login</Link>
       </Group>
     </Container>
   </>;
