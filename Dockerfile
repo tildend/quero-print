@@ -1,14 +1,11 @@
 # syntax = docker/dockerfile:1
 
-FROM node:lts AS base
+FROM node:lts-slim AS base
 
 LABEL fly_launch_runtime="Remix"
 
 # Remix app lives here
 WORKDIR /app
-
-# Set production environment
-ENV NODE_ENV="production"
 
 # Throw-away build stage to reduce size of final image
 FROM base AS build
@@ -33,6 +30,9 @@ RUN rm -rf node_modules && \
 
 # Final stage for app image
 FROM base
+
+# Set production environment
+ENV NODE_ENV="production"
 
 # Copy built application
 COPY --from=build /app /app
