@@ -1,19 +1,24 @@
 import { AppShell, Container, Text } from "@mantine/core";
+import { WithId } from "mongodb";
 import { FC, PropsWithChildren, useState } from "react";
 import { Header } from "~/components/Header";
+import { User } from "~/models/User";
 
 type Props = {
-  userId?: string;
+  user?: WithId<User>;
 }
 
-export const PublicMenuLayout: FC<PropsWithChildren<Props>> = ({ children, userId }) => {
+export const PublicMenuLayout: FC<PropsWithChildren<Props>> = ({ children, user }) => {
   const [dealText, setDealText] = useState("😱 Ganhe 5 páginas <strong>Grátis</strong> na primeira compra");
   const height = 80 + (dealText ? 32 : 0);
 
   return (
     <AppShell
       header={{ height }}
-      padding={"xl"}
+      padding={{
+        base: "sm",
+        lg: "lg"
+      }}
       bg={"transparent"}
       footer={{
         height: 48,
@@ -25,7 +30,7 @@ export const PublicMenuLayout: FC<PropsWithChildren<Props>> = ({ children, userI
         color="print"
         className="shadow-md"
       >
-        <Header dealText={dealText} userId={userId} />
+        <Header dealText={dealText} user={user} />
       </AppShell.Header>
 
       <AppShell.Main>{children}</AppShell.Main>

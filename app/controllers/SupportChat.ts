@@ -5,8 +5,11 @@ import { Message } from "~/models/Message";
 import { ROLE, User } from "~/models/User";
 
 export const getMessages = async (authorId: string, receiverId = authorId, skip = 0, limit = 10) => {
-  if (!authorId)
+  if (!authorId || authorId.length !== 24)
     throw new Erro("Nenhum usuário informado");
+
+  if (!receiverId || receiverId.length !== 24)
+    throw new Erro("Nenhum usuário receptor informado");
 
   const messages = db.collection<Message>("messages");
   const messagesList = await messages.find({

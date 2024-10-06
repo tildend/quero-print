@@ -12,7 +12,8 @@ import OrdersTab from "~/components/Profile/Tabs/Orders";
 import { getUser } from "~/controllers/User.server";
 import { getOrders } from "~/controllers/Orders.server";
 import { getAddresses } from "~/controllers/Address.server";
-import { SupportChat } from "~/components/Profile/Tabs/SupportChat";
+import { SupportChat } from "~/components/SupportChat";
+import { useViewportSize } from "@mantine/hooks";
 
 export const loader: LoaderFunction = async ({ request }) => {
   const { userId } = await theSession(request, true);
@@ -21,6 +22,8 @@ export const loader: LoaderFunction = async ({ request }) => {
     redirect("/login");
     return;
   }
+
+  console.log('userId', userId);
 
   const user = await getUser(userId);
   const orders = await getOrders(userId);
@@ -38,15 +41,23 @@ export default function Perfil() {
   const { userId, user, orders, addresses } = useLoaderData<typeof loader>();
   const { defaultValue, handleChangeTab } = useTabs(true, 'perfil');
 
-  return <PublicMenuLayout userId={userId}>
-    <Container>
-      <Box className="p-8 rounded-lg bg-white/75 shadow-md">
+  const { width } = useViewportSize();
+
+  return <PublicMenuLayout user={user}>
+    <Container className="relative">
+      <Box className="
+        relative
+        w-screen lg:w-full
+        left-1/2 lg:left-auto
+        -translate-x-1/2 lg:-translate-x-0
+        p-8 rounded-lg bg-white/75 shadow-md
+      ">
         {user ? (<>
           <h2 className="text-2xl font-semibold">Bem vindo {user.name}</h2>
 
           <Box className="mt-4 w-full">
-            <Tabs orientation="vertical" defaultValue={defaultValue} className="gap-8" onChange={handleChangeTab}>
-              <Tabs.List>
+            <Tabs orientation={width > 1024 ? 'vertical' : 'horizontal'} defaultValue={defaultValue} className="gap-8" onChange={handleChangeTab}>
+              <Tabs.List mb={width > 1024 ? 0 : 16}>
                 <Tabs.Tab value="perfil">Perfil</Tabs.Tab>
                 <Tabs.Tab value="enderecos">Endereços</Tabs.Tab>
                 <Tabs.Tab value="pedidos">Pedidos</Tabs.Tab>

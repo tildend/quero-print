@@ -20,7 +20,19 @@ export const MessageItem = ({ message, myMsg }: Props) => {
   return (
     <div role="listitem"
       data-my-msg={myMsg}
-      className="w-fit grid gap-2 p-2 border border-gray-200 bg-white/65 rounded-lg data-[my-msg=true]:bg-green-200">
+      className="
+        w-fit
+        grid
+        gap-2
+        p-2
+        border
+        border-gray-200
+        bg-white/65
+        rounded-lg
+        data-[my-msg=true]:justify-self-end
+        data-[my-msg=true]:bg-green-200
+      "
+    >
       <h2 className="text-sm font-bold">
         {author?.name}
       </h2>

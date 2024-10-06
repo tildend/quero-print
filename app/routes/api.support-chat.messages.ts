@@ -11,7 +11,7 @@ export const loader: LoaderFunction = async ({ request }) => {
   }
 
   const url = new URL(request.url);
-  const authorId = url.searchParams.get("authorId");
+  const authorId = url.searchParams.get("authorId")?.toString();
 
   const messages = await getMessages(authorId || userId, userId);
 

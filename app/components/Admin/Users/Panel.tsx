@@ -48,13 +48,13 @@ export default function UsersPanel() {
         </Text>
       ),
       labels: { confirm: "Delete", cancel: "Cancel" },
-      confirmProps: { color: "red" },
+      confirmProps: { color: "red", tabIndex: 0 },
       onConfirm: async () => {
         await fetch(`/api/users/${user._id}`, {
           method: "DELETE",
         });
 
-        updateUsers(search, 10, 0);
+        await updateUsers(search, 10, 0);
       },
     });
   };
@@ -78,9 +78,10 @@ export default function UsersPanel() {
         </ActionIcon>
       </Group>
 
-      <Box className="grid gap-4">
+      <Box className="relative grid gap-4">
+        <small className="absolute -top-5">{users?.length} usuários</small>
         {users?.map((user) => (
-          <Box key={user.email} className="w-full flex gap-4 items-center rounded-md border border-gray-200 p-4">
+          <Box key={user._id.toString()} className="w-full flex gap-4 items-center rounded-md border border-gray-200 p-4">
             <div className="flex flex-col flex-grow">
               <Text size="sm" fw={500}>
                 {user.name}

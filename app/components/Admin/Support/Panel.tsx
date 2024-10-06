@@ -27,16 +27,15 @@ export const AdminSupportPanel = ({ userId }: { userId: string }) => {
   useEffect(() => {
     const fetchInterval = setInterval(() => {
       if (selectedUser)
-        messagesFetcher.load(`/api/support-chat/messages?authorId=${selectedUser}&receiverId=${userId}`);
-    }, 500);
+        messagesFetcher.load(`/api/support-chat/messages?authorId=${selectedUser}`);
+    }, 10_000);
 
     if (selectedUser)
-      messagesFetcher.load(`/api/support-chat/messages?authorId=${selectedUser}&receiverId=${userId}`);
+      messagesFetcher.load(`/api/support-chat/messages?authorId=${selectedUser}`);
     return () => clearInterval(fetchInterval);
   }, [selectedUser]);
 
   useEffect(() => {
-    console.log('ARRAY DE MESSAGE', messagesFetcher.data);
     if (messagesFetcher.data && Array.isArray(messagesFetcher.data)) {
       setMessages(messagesFetcher.data as WithId<Message>[]);
     }
@@ -59,7 +58,7 @@ export const AdminSupportPanel = ({ userId }: { userId: string }) => {
       </header>
 
       <div className="w-full grid grid-cols-[.15fr_1fr] gap-2">
-        <div className="w-full grid gap-2 border-r border-daintree/25" role="list">
+        <div className="w-full flex flex-col gap-2 border-r border-daintree/25" role="list">
           {usersId.map(id => <ChatUser key={id} userId={id} />)}
         </div>
 

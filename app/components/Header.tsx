@@ -1,13 +1,16 @@
-import { Box, Title, Group, Divider, Text, Container } from "@mantine/core";
+import { Box, Title, Group, Divider, Text, Container, Menu, Button } from "@mantine/core";
 import { Link } from "@remix-run/react";
+import { IconArrowDown, IconCaretDown, IconChevronDown, IconLogin, IconLogout, IconUser, IconUserFilled } from "@tabler/icons-react";
+import { WithId } from "mongodb";
 import { FC } from "react";
+import { User } from "~/models/User";
 
 type Props = {
   dealText?: string;
-  userId?: string;
+  user?: WithId<User>;
 }
 
-export const Header: FC<Props> = ({ dealText, userId }) => {
+export const Header: FC<Props> = ({ dealText, user }) => {
   return <>
     <Box className="h-8 bg-yellow-400" hidden={!dealText}>
       <Container>
@@ -22,12 +25,25 @@ export const Header: FC<Props> = ({ dealText, userId }) => {
         </Title>
       </Link>
 
-      <Group gap='md'>
-        <Link to='/perfil' style={{ display: userId ? 'block' : 'none' }}>Perfil</Link>
-        <Divider orientation="vertical" hidden={!userId} />
-        <Link hidden={!userId} color="red" to='/logout'>Logout</Link>
-        <Link to='/login' style={{ display: userId ? 'none' : 'block' }}>Login</Link>
-      </Group>
+      {user ? <Menu classNames={{ item: 'text-daintree/75' }}>
+        <Menu.Target>
+          <Button variant="subtle" rightSection={<IconChevronDown size={18} stroke={2} />}>{user?.name}</Button>
+        </Menu.Target>
+
+        <Menu.Dropdown>
+          <Menu.Item component={Link} to="/perfil" leftSection={<IconUserFilled size={18} />}>
+            Perfil
+          </Menu.Item>
+
+          <Menu.Item component={Link} to="/logout" leftSection={<IconLogout size={18} />}>
+            Sair
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu> : (
+        <Button variant="subtle" component={Link} to="/login">
+          Login
+        </Button>
+      )}
     </Container>
   </>;
 }
