@@ -17,7 +17,7 @@ import "./tailwind.css";
 import { LinksFunction, LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { Notifications } from "@mantine/notifications";
 import { ModalsProvider } from "@mantine/modals";
-import { theSession } from "./routes/sessions";
+import { theSession } from "./sessions.server";
 import { createContext } from "react";
 
 const print: MantineColorsTuple = [

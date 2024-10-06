@@ -88,7 +88,6 @@ export const PaymentForm: FC<Props> = ({ payForm, clientSecret, handleSubmitPurc
     }
 
     await stripe.retrievePaymentIntent(clientSecret).then(data => {
-      console.log(`🔔PAYMENT DATA: `, data);
       switch (data.paymentIntent?.status) {
         case "succeeded":
           handleSubmitPurchase(data.paymentIntent.id);
