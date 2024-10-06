@@ -16,7 +16,7 @@ RUN apt-get update -qq && \
 
 # Install node modules including devDependencies
 COPY --link package.json package-lock.json ./
-RUN npm install --include=dev
+RUN npm install
 
 # Copy application code
 COPY --link . .
@@ -24,15 +24,15 @@ COPY --link . .
 # Build application
 RUN npm run build
 
-# # Remove development dependencies
+# Set production environment
+ENV NODE_ENV="production"
+# Remove development dependencies
 RUN rm -rf node_modules && \
-    npm install --ci
+    npm install
 
 # Final stage for app image
 FROM base
 
-# Set production environment
-ENV NODE_ENV="production"
 
 # Copy built application
 COPY --from=build /app /app
