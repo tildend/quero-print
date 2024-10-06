@@ -28,9 +28,8 @@ COPY --link . .
 RUN npm run build
 
 # # Remove development dependencies
-# RUN rm -rf node_modules && \
-#     npm install
-
+RUN rm -rf node_modules && \
+    npm install --ci
 
 # Final stage for app image
 FROM base
