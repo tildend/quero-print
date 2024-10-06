@@ -30,7 +30,7 @@ RUN npm run build
 
 # Remove development dependencies
 RUN rm -rf node_modules && \
-    npm install --production
+    npm install
 
 
 # Final stage for app image
