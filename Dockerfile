@@ -1,8 +1,6 @@
 # syntax = docker/dockerfile:1
 
-# Adjust BUN_VERSION as desired
-ARG BUN_VERSION=1
-FROM oven/bun:${BUN_VERSION}-slim AS base
+FROM node:lts-slim AS base
 
 LABEL fly_launch_runtime="Remix"
 
@@ -21,18 +19,18 @@ RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential pkg-config python-is-python3
 
 # Install node modules
-COPY --link bun.lockb package.json ./
-RUN bun install
+COPY --link package.json package-lock.json ./
+RUN npm install
 
 # Copy application code
 COPY --link . .
 
 # Build application
-RUN bun --bun run build
+RUN npm run build
 
 # Remove development dependencies
 RUN rm -rf node_modules && \
-    bun install --ci
+    npm install --production
 
 
 # Final stage for app image
@@ -43,4 +41,4 @@ COPY --from=build /app /app
 
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
-CMD [ "bun", "run", "start" ]
+CMD [ "npm", "run", "start" ]
