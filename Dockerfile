@@ -1,6 +1,6 @@
 # syntax = docker/dockerfile:1
 
-FROM node:lts-slim AS base
+FROM node:lts AS base
 
 LABEL fly_launch_runtime="Remix"
 
