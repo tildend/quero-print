@@ -14,7 +14,7 @@ import SwiperInstance from "swiper";
 import { IconCheck } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 import { useOrderID } from "~/hooks/useOrder";
-import { theSession } from "./sessions";
+import { theSession } from "../sessions.server";
 
 export const meta: MetaFunction = () => {
   return [

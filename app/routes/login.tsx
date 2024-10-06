@@ -9,7 +9,7 @@ import { recaptchaIsHuman } from "~/helpers/recaptcha.server";
 import { useRecaptcha } from "~/hooks/useRecaptcha";
 import { Erro } from "~/models/Erro";
 import { ResAPI, Resposta } from "~/models/Resposta";
-import { commitSession, getSession } from "./sessions";
+import { commitSession, getSession } from "../sessions.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   if (!process.env.RECAPTCHA_SECRET) {

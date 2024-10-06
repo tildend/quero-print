@@ -1,5 +1,5 @@
 import { LoaderFunction, json } from "@remix-run/node";
-import { theSession } from "./sessions";
+import { theSession } from "../sessions.server";
 import { getSupportUserId } from "~/controllers/SupportChat";
 
 export const loader: LoaderFunction = async ({ request }) => {

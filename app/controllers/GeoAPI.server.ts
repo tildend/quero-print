@@ -34,11 +34,11 @@ export async function getFullAddrFromCoords(coords: Coordinates, env: { GEOAPIFI
   }
 
   const addr: ReverseRes = await fetch(url).then(res => res.json());
-  console.log('addr', addr);
+
   if (!addr.features.length) {
     throw new Error('No address found');
   }
-  
+
   const addrFeatures = addr.features[0];
 
   return saveAddrToDB(coords, {
@@ -76,7 +76,7 @@ export async function getCoordsDistance(coords: Coordinates, env: { BASE_LAT: nu
   if (!addr.features.length) {
     throw new Error('No address found');
   }
-  
+
   const forwardUrl = new URL('search', GEO_BASE_URL);
   forwardUrl.searchParams.append('text', addr.features[0].properties.formatted);
   forwardUrl.searchParams.append('bias', `proximity:${env.BASE_LON},${env.BASE_LAT}`);
@@ -85,7 +85,6 @@ export async function getCoordsDistance(coords: Coordinates, env: { BASE_LAT: nu
 
   const res: ForwardRes = await fetch(forwardUrl).then(res => res.json());
   const addrWDistance = res.results.filter(f => f.distance)[0];
-  console.log('DISTANCIA', addrWDistance);
 
   return addrWDistance.distance;
 }

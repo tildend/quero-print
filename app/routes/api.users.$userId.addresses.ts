@@ -5,7 +5,7 @@ import { createOrder } from "~/controllers/Orders.server";
 import { Erro } from "~/models/Erro";
 import { Order } from "~/models/Order";
 import { Address } from "~/models/User";
-import { theSession } from "./sessions";
+import { theSession } from "../sessions.server";
 import { clearObject } from "~/helpers/clearObject";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {

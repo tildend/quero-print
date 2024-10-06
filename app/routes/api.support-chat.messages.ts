@@ -1,5 +1,5 @@
 import { LoaderFunction, redirect, json, ActionFunction } from "@remix-run/node";
-import { theSession } from "./sessions";
+import { theSession } from "../sessions.server";
 import { createMessage, getMessages } from "~/controllers/SupportChat";
 import { Erro } from "~/models/Erro";
 

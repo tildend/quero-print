@@ -1,6 +1,5 @@
 import { createCookieSessionStorage, redirect } from "@remix-run/node";
-import { createTempUser, createUser, getUser } from "~/controllers/User.server";
-import { Erro } from "~/models/Erro";
+import { getUser } from "~/controllers/User.server";
 
 type SessionData = {
   userId: string;

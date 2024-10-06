@@ -1,7 +1,7 @@
 import { Box, Container, Skeleton, Tabs } from "@mantine/core";
 import { LoaderFunction, redirect } from "@remix-run/node";
 import { PublicMenuLayout } from "~/layouts/PublicMenu";
-import { theSession } from "./sessions";
+import { theSession } from "../sessions.server";
 import { useLoaderData } from "@remix-run/react";
 import { useTabs } from "~/hooks/useTabs";
 

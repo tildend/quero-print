@@ -1,7 +1,7 @@
 import { Box, Container, Tabs } from "@mantine/core";
 import { json, LoaderFunction } from "@remix-run/node";
 import UsersPanel from "~/components/Admin/Users/Panel";
-import { theSession } from "./sessions";
+import { theSession } from "../sessions.server";
 import { getUser } from "~/controllers/User.server";
 import { ROLE } from "~/models/User";
 import { AdminSupportPanel } from "~/components/Admin/Support/Panel";
