@@ -1,9 +1,9 @@
-import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
+import type { LoaderFunction, MetaFunction } from "@remix-run/node";
 import { PublicMenuLayout } from "~/layouts/PublicMenu";
 
 import { Box, Button, Container, Divider, Text } from "@mantine/core";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { json, Link, useLoaderData } from "@remix-run/react";
+import { json, Link, useLoaderData, useNavigate } from "@remix-run/react";
 import { FilesUploadStep } from "~/components/HomeStepper/FilesUploadStep";
 import { DeliveryPlace } from "~/components/HomeStepper/DeliveryPlaceStep";
 import { useForm } from "@mantine/form";
@@ -15,6 +15,10 @@ import { IconCheck } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 import { useOrderID } from "~/hooks/useOrder";
 import { theSession } from "../sessions.server";
+import { WithId } from "mongodb";
+import { User } from "~/models/User";
+import { notifications } from "@mantine/notifications";
+import { Erro } from "~/models/Erro";
 
 export const meta: MetaFunction = () => {
   return [
@@ -44,7 +48,7 @@ export const meta: MetaFunction = () => {
   ];
 };
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
+export const loader: LoaderFunction = async ({ request }) => {
   const { userId, user } = await theSession(request);
 
   if (!(
@@ -90,6 +94,7 @@ export default function Index() {
   const { env, userId, user } = useLoaderData<typeof loader>();
 
   const { orderID, clearOrderID } = useOrderID();
+  const navigate = useNavigate();
 
   const stepSwiper = useRef<SwiperInstance>();
   const stepCompSwiper = useRef<SwiperInstance>();
@@ -227,6 +232,68 @@ export default function Index() {
   const handleSubmitPurchase = async (paymentTx: string) => {
     setLoading(true);
 
+    if (!droppedFiles) {
+      console.error('No files');
+      setLoading(false);
+
+      notifications.show({
+        title: 'Erro',
+        message: 'Nenhum arquivo selecionado',
+        color: 'red'
+      });
+      return;
+    }
+
+    // Upload the files to S3
+    const uploadedFiles: { name: string, uploadedAt: string, URL: string }[] = [];
+    try {
+      for (const file of droppedFiles) {
+        const uploadURL = new URL('/api/upload-media', window.location.origin);
+        uploadURL.searchParams.set('path', `user/${userId}/order/${orderID}`);
+
+        const uploadResponse = await fetch(uploadURL.toString(), {
+          method: 'POST',
+          body: file
+        });
+
+        if (uploadResponse.ok) {
+          uploadedFiles.push({
+            name: file.name,
+            uploadedAt: new Date().toISOString(),
+            URL: await uploadResponse.text()
+          });
+        } else {
+          console.error(uploadResponse, uploadedFiles);
+          setLoading(false);
+
+          notifications.show({
+            title: 'Erro',
+            message: 'Falha ao fazer upload do arquivo',
+            color: 'red'
+          });
+
+          throw new Erro('Falha ao fazer upload do arquivo: ' + file.name);
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      if (error instanceof Erro) {
+        notifications.show({
+          title: 'Erro',
+          message: error.mensagem,
+          color: 'red'
+        });
+        return;
+      }
+
+      notifications.show({
+        title: 'Erro',
+        message: 'Falha ao fazer upload do arquivo',
+        color: 'red'
+      });
+      return;
+    }
+
     // Send order to backend
     const response = await fetch('/api/orders', {
       method: 'POST',
@@ -237,7 +304,7 @@ export default function Index() {
         userId,
         orderID,
         paymentTx,
-        files: droppedFiles,
+        files: uploadedFiles,
         totalPages,
         printTotal,
         shippingTotal,
@@ -281,10 +348,19 @@ export default function Index() {
               Ver meus pedidos
             </Button>
           </Box>
-        )
+        ),
+        onClose: () => {
+          clearOrderID();
+          navigate('/perfil#pedidos');
+        }
       });
     } else {
       console.error(response);
+      notifications.show({
+        title: 'Erro',
+        message: 'Falha ao finalizar pedido, cheque seu cartão de crédito e tente novamente',
+        color: 'red'
+      });
     }
 
     setLoading(false);
@@ -345,23 +421,11 @@ export default function Index() {
     }
   ];
 
-  useEffect(() => {
-    if (window.location.hash) {
-      const step = Number(window.location.hash.replace('#step-', ''));
-      if (step >= 0 && step < stepsWithFunctionComponent.length) {
-        setStep(step);
-      }
-    } else {
-      setStep(0);
-    }
-  }, []);
-
   return (
-    <PublicMenuLayout userId={userId}>
+    <PublicMenuLayout user={user as WithId<User>}>
       <Container className="pb-16">
         <Swiper
-          slidesPerView="auto"
-          spaceBetween={32}
+          slidesPerView={1}
           centerInsufficientSlides
           onSwiper={swiperInstance => stepSwiper.current = swiperInstance}
           allowTouchMove={false}
@@ -370,15 +434,25 @@ export default function Index() {
             left-1/2 -translate-x-1/2
             w-screen lg:w-full
             px-8 lg:px-0
-            mb-8
+            mt-4
           "
+          breakpoints={{
+            1024: {
+              slidesPerView: 3,
+              spaceBetween: 32
+            },
+            768: {
+              slidesPerView: 1,
+              spaceBetween: 0
+            }
+          }}
         >
           {stepsWithFunctionComponent.map(({ label, description }, index) => (
             <SwiperSlide key={index} className="w-fit">
               <Box
                 data-done={index < step}
                 data-current={index === step}
-                className="group flex items-center gap-2"
+                className="group flex items-center justify-center gap-2 opacity-25 data-[current=true]:opacity-100"
               >
                 <Box
                   className="

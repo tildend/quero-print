@@ -1,10 +1,46 @@
-import { ActionFunction, json } from "@remix-run/node";
+import { ActionFunction, json, LoaderFunction, redirect } from "@remix-run/node";
 import { WithId } from "mongodb";
 import { createAddress } from "~/controllers/Address.server";
-import { createOrder } from "~/controllers/Orders.server";
+import { createOrder, getOrders } from "~/controllers/Orders.server";
 import { createUser, getUser, getUserByDocument } from "~/controllers/User.server";
-import { Order } from "~/models/Order";
-import { Address, User } from "~/models/User";
+import { Erro } from "~/models/Erro";
+import { ORDER_STATUS } from "~/models/Order";
+import { ROLE, User } from "~/models/User";
+import { theSession } from "~/sessions.server";
+
+export const loader: LoaderFunction = async ({ request }) => {
+  const session = await theSession(request);
+  if (!session.isLoggedIn) {
+    throw redirect("/");
+  }
+
+  if (session.user?.role === ROLE.USER) {
+    throw redirect("/");
+  }
+
+  const url = new URL(request.url);
+  const search = url.searchParams.get("s")?.toString() || '';
+  const status = url.searchParams.get("status")?.toString() || undefined;
+  const limit = url.searchParams.get("limit")?.toString() || '10';
+  const skip = url.searchParams.get("skip")?.toString() || '0';
+
+  const order_status = status && (Object.keys(ORDER_STATUS).includes(status) ? ORDER_STATUS[status as keyof typeof ORDER_STATUS] : undefined);
+
+  try {
+    const orders = await getOrders(undefined, order_status || undefined, search, Number(skip), Number(limit));
+    return json(orders.orders, {
+      headers: {
+        'x-total': orders.countTotal.toString()
+      }
+    });
+  } catch (error) {
+    console.log('api.orders.ts', error);
+    if (error instanceof Erro) {
+      return json({ error: error.mensagem }, { status: 400 });
+    }
+    return json({ error: "Não foi possível obter seus pedidos." }, { status: 400 });
+  }
+}
 
 export const action: ActionFunction = async ({ request }) => {
   switch (request.method) {
@@ -20,8 +56,10 @@ export const action: ActionFunction = async ({ request }) => {
         try {
           if (body.userId) {
             user = await getUser(body.userId);
-          } else {
+          } else if (body.payment.document) {
             user = await getUserByDocument(body.payment.document);
+          } else {
+            throw new Erro("Nenhum documento fornecido", 400);
           }
         } catch (error) {
           console.log("[api.orders][POST][catch] Novo usuário!! 🎉🎉🎉", error);
@@ -30,7 +68,7 @@ export const action: ActionFunction = async ({ request }) => {
             document: body.payment.document,
             email: body.payment.email,
             name: body.payment.fullName,
-
+            role: ROLE.USER,
             password: Math.random().toString(36).substring(7),
             phone: body.payment.phone,
             createdAt: new Date(),
@@ -60,9 +98,9 @@ export const action: ActionFunction = async ({ request }) => {
         });
 
         await createOrder({
-          userId: user._id,
-          addressId: addressID,
-          status: "pending",
+          userId: user._id.toString(),
+          addressId: addressID.toString(),
+          status: ORDER_STATUS.PENDING,
           pages: body.totalPages,
           files: body.files,
           printTotal: body.printTotal,

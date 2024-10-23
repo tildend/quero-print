@@ -14,6 +14,12 @@ export const userExists = async (userId: string) => {
 export const getUser = async (userId: string) => {
   const user = await db.collection<User>("users").findOne({
     _id: new ObjectId(userId)
+  }, {
+    projection: {
+      password: 0,
+      birthday: 0,
+      document: 0,
+    }
   });
 
   if (!user) {
@@ -54,7 +60,7 @@ export const getUserRole = async (userId: string) => {
 }
 
 export const getUserOrders = async (userId: string) => {
-  return await getOrders(userId, undefined, 0, 1);
+  return await getOrders(userId, undefined, undefined, 0, 1);
 }
 
 export const createUser = async (user: User) => {

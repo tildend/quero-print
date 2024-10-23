@@ -1,7 +1,9 @@
-import { ActionIcon, Box, Group, Menu, Text, Tooltip } from "@mantine/core";
-import { IconCamera, IconCameraFilled, IconDotsVertical, IconX } from "@tabler/icons-react";
+import { ActionIcon, Box, Menu, Text, Tooltip } from "@mantine/core";
+import { useViewportSize } from "@mantine/hooks";
+import { IconDotsVertical, IconX } from "@tabler/icons-react";
 import { FC, useState, useEffect, Dispatch, SetStateAction } from "react";
 import { numToSize } from "~/helpers/numToSize";
+import { theme } from "~/root";
 
 type Props = {
   i: number;
@@ -55,31 +57,34 @@ export const FileComponent: FC<Props> = ({ i, file, setDroppedFiles, setTotalPag
     <Box
       className="
           relative
-          grid grid-cols-[1fr_auto_auto] gap-4 items-center
-          pr-6
+          w-full max-w-full
+          grid grid-cols-[1fr_auto_32px]
+          gap-4 items-center justify-between
+          pr-3
           duration-500
           group/file
         "
     >
-      <Box className="flex items-center gap-2">
+      <Box className="flex items-center gap-2 max-w-full overflow-hidden">
         <Tooltip label={'Imagens valem 3 páginas'} disabled={!isImage}>
           <span>
             {isImage ? '📷 ' : '📄 '}
           </span>
         </Tooltip>
         <Tooltip label={file.name}>
-          <Text truncate="end" className="w-[160px]">
+          <Text truncate="end" className="max-w-full overflow-hidden">
             {file.name}
           </Text>
         </Tooltip>
       </Box>
 
-      <Text size="xs" className="w-[60px]" c="gray">
+      {/* <Text size="xs" c="gray" className="text-nowrap">
         {numToSize(file.size)}
-      </Text>
+      </Text> */}
+
       <Tooltip label={'Imagens valem 3 páginas'} disabled={!isImage}>
-        <Text size="xs" c="gray" className="min-w-16">
-          {pages} página{pages > 1 ? 's' : ''}<br />
+        <Text size="xs" c="gray" className="w-8 text-nowrap">
+          {pages} pg{pages > 1 ? 's' : ''}
         </Text>
       </Tooltip>
 
@@ -91,13 +96,7 @@ export const FileComponent: FC<Props> = ({ i, file, setDroppedFiles, setTotalPag
               setMenuOpened(prev => !prev);
             }}
             aria-label="Mais opções"
-            variant="light"
-            className="
-              absolute right-0
-              duration-300
-              opacity-0
-              group-hover/file:opacity-100
-            "
+            variant='subtle'
           >
             <IconDotsVertical size={16} />
           </ActionIcon>

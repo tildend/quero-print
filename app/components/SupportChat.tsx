@@ -41,7 +41,7 @@ export const SupportChat = ({ userId, enableMultiUser = false }: Props) => {
             setError(true);
             console.log('Error getting support user', e);
           });
-      }, 300);
+      }, 1000);
 
       return () => clearInterval(fetchInterval);
     }
@@ -52,7 +52,7 @@ export const SupportChat = ({ userId, enableMultiUser = false }: Props) => {
     const fetchInterval = setInterval(() => {
       if (receiverId && !error)
         messagesFetcher.load(`/api/support-chat/messages?authorId=${receiverId}`);
-    }, 300);
+    }, 1000);
 
     return () => clearInterval(fetchInterval);
   }, [receiverId, error]);

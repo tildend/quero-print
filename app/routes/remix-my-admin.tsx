@@ -1,13 +1,14 @@
-import { Box, Container, Tabs } from "@mantine/core";
+import { Container, Tabs } from "@mantine/core";
 import { json, LoaderFunction } from "@remix-run/node";
 import UsersPanel from "~/components/Admin/Users/Panel";
 import { theSession } from "../sessions.server";
 import { getUser } from "~/controllers/User.server";
 import { ROLE } from "~/models/User";
-import { AdminSupportPanel } from "~/components/Admin/Support/Panel";
 import { useLoaderData } from "@remix-run/react";
 import { PublicMenuLayout } from "~/layouts/PublicMenu";
 import { SupportChat } from "~/components/SupportChat";
+import { useTabs } from "~/hooks/useTabs";
+import OrdersPanel from "~/components/Admin/Orders/Panel";
 
 export const loader: LoaderFunction = async ({ request }) => {
   const { userId } = await theSession(request, true);
@@ -26,6 +27,7 @@ export const loader: LoaderFunction = async ({ request }) => {
 
 export default function RemixMyAdmin() {
   const { userId, user } = useLoaderData<typeof loader>();
+  const { defaultValue, handleChangeTab } = useTabs(true, 'orders');
 
   return (
     <PublicMenuLayout user={user}>
@@ -34,12 +36,20 @@ export default function RemixMyAdmin() {
           Remix My Admin
         </h1>
 
-        <Tabs defaultValue="users" className="mt-10">
+        <Tabs
+          defaultValue={defaultValue}
+          onChange={handleChangeTab}
+          className="mt-10"
+        >
           <Tabs.List className="mb-8">
+            <Tabs.Tab value="orders">Pedidos</Tabs.Tab>
             <Tabs.Tab value="users">Usuários</Tabs.Tab>
             <Tabs.Tab value="support">Suporte</Tabs.Tab>
           </Tabs.List>
 
+          <Tabs.Panel value="orders">
+            <OrdersPanel />
+          </Tabs.Panel>
           <Tabs.Panel value="users">
             <UsersPanel />
           </Tabs.Panel>

@@ -1,5 +1,5 @@
 import { Box, Divider, Skeleton } from "@mantine/core";
-import { ComponentProps, Dispatch, FC, SetStateAction, useEffect, useMemo, useState } from "react";
+import { ComponentProps, Dispatch, FC, SetStateAction, useMemo } from "react";
 
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
@@ -27,21 +27,25 @@ type Props = {
   setStep: Dispatch<SetStateAction<number>>;
 
   // Files
-  files: File[];
   totalPages: number;
 
   shippingTotal?: number;
   orderTotal?: number;
 }
 
-export const PaymentStep: FC<Props> = ({ env, clientSecret, payForm, handleSubmitPurchase, setStep, isFlex, files, totalPages, shippingTotal, orderTotal }) => {
+export const PaymentStep: FC<Props> = ({ env, clientSecret, payForm, handleSubmitPurchase, setStep, isFlex, totalPages, shippingTotal, orderTotal }) => {
   const stripePromise = useMemo(() => loadStripe(env.STRIPE_PUBLISHABLE_KEY || ''), [env.STRIPE_PUBLISHABLE_KEY]);
 
   return (
     <Box className="w-full flex flex-col-reverse lg:grid lg:grid-cols-[1fr_auto_.6fr] gap-8">
       {clientSecret ? (
         <Elements options={{ clientSecret }} stripe={stripePromise}>
-          <PaymentForm payForm={payForm} clientSecret={clientSecret} handleSubmitPurchase={handleSubmitPurchase} />
+          <PaymentForm
+            setStep={setStep}
+            payForm={payForm}
+            clientSecret={clientSecret}
+            handleSubmitPurchase={handleSubmitPurchase}
+          />
         </Elements>
       ) : (
         <Box className="grid gap-3">
@@ -57,8 +61,6 @@ export const PaymentStep: FC<Props> = ({ env, clientSecret, payForm, handleSubmi
 
       <OrderResume
         env={env}
-        setStep={setStep}
-        files={files}
         totalPages={totalPages}
         shippingTotal={shippingTotal}
         orderTotal={orderTotal}

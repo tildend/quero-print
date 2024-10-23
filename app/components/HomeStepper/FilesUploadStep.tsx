@@ -1,6 +1,6 @@
 import { Box, Divider, Title, List, Tooltip, Text, Group, Button, ScrollArea } from "@mantine/core";
 import { IconCloudUpload } from "@tabler/icons-react";
-import { Dispatch, FC, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, FC, SetStateAction, useEffect, useRef, useState } from "react";
 import { useColors } from "tailwind.config";
 import { Dropzone } from "@mantine/dropzone";
 import { FileComponent } from "./FilesUploadStep/FileComponent";
@@ -20,6 +20,8 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
 export const FilesUploadStep: FC<Props> = ({ droppedFiles, setDroppedFiles, setStep, totalPages, setTotalPages }) => {
   const [filesPages, setFilesPages] = useState<Record<number, number>>({});
+
+  const dropZoneRef = useRef<() => void>(() => { });
   const onDrop = (files: File[]) => {
     for (const file of files) {
       if (file.size > MAX_FILE_SIZE) {
@@ -73,24 +75,20 @@ export const FilesUploadStep: FC<Props> = ({ droppedFiles, setDroppedFiles, setS
   const [scrollPosition, onScrollPositionChange] = useState({ x: 0, y: 0 });
 
   return (
-    <Dropzone
-      multiple
-      onDrop={onDrop}
-      accept={['image/png', 'image/jpeg', 'image/jpg', 'application/pdf']}
-      maxSize={MAX_FILE_SIZE}
-      classNames={{
-        root: `
+    <>
+      <Box
+        className="
           w-full
+          p-8
           group
           bg-gradient-to-b from-[#F3F6FB] to-[#D5DDEC]
           lg:bg-white/75
           shadow-md
-        `,
-      }}
-    >
-      <Box className="lg:h-[480px]">
+        "
+      >
         <div
           className="
+            w-full
             grid
             grid-rows-[1fr_auto_auto]
             lg:grid-cols-[1fr_auto_0.6fr]
@@ -99,26 +97,22 @@ export const FilesUploadStep: FC<Props> = ({ droppedFiles, setDroppedFiles, setS
             pointer-events-auto
           "
         >
-          <div className="max-w-full flex flex-col gap-4 items-center justify-center">
+          <button className="max-w-full flex flex-col gap-4 items-center justify-center select-none" onClick={dropZoneRef.current} aria-label="Clique para escolher os arquivos">
             <IconCloudUpload size={128} color={colors.metallic} />
-            <Text size="xl" ta="center">Arraste e solte os arquivos aqui</Text>
-            <Text size="sm" ta="center">ou clique para procurar</Text>
-          </div>
+            <Text size="xl" ta="center">Arraste e solte os arquivos na página</Text>
+            <Text size="sm" ta="center">ou clique aqui para procurar</Text>
+          </button>
 
           <Divider orientation="vertical" mx="lg" className="hidden lg:block" />
           <Divider orientation="horizontal" my="lg" className="lg:hidden" />
 
-          <Box className="w-full flex flex-col justify-between opacity-85 pointer-events-auto z-[1]">
+          <Box className="max-w-full flex flex-col justify-between opacity-85 pointer-events-auto z-[1]">
             <List className="w-full text-sm lg:h-[410px] mb-8" spacing="lg">
               <ScrollArea
                 data-has-files={!!droppedFiles?.length}
-                data-scroll-at-bottom={!!droppedFiles && scrollPosition.y >= (droppedFiles?.length * 35) - 440}
+                data-scroll-at-bottom={!!droppedFiles && scrollPosition.y >= (droppedFiles?.length * 35) - 454}
                 onScrollPositionChange={onScrollPositionChange}
                 classNames={scrollareaGradientStyles}
-                className="
-                  group-hover:after:from-[#D8E0EF]
-                  lg:group-hover:after:from-[#f8f9fa]
-                "
               >
                 {droppedFiles ? droppedFiles.map((file, i) => (
                   <List.Item key={file.name + file.lastModified + file.size} mt="xs" classNames={{ itemWrapper: 'w-full', itemLabel: 'w-full' }}>
@@ -142,8 +136,8 @@ export const FilesUploadStep: FC<Props> = ({ droppedFiles, setDroppedFiles, setS
 
             <Box className="flex justify-between items-center">
               <Text size="lg" c="gray" hidden={!totalPages}>{totalPages} página{totalPages > 1 ? 's' : ''}</Text>
-              <Text size="sm" c="gray" hidden={!!totalPages}>
-                Envie seus arquivos para começar
+              <Text size="xs" c="gray" hidden={!!totalPages}>
+                Envie seus arquivos<br />para começar
               </Text>
               <Button
                 onClick={e => {
@@ -152,6 +146,7 @@ export const FilesUploadStep: FC<Props> = ({ droppedFiles, setDroppedFiles, setS
                 }}
                 color="green"
                 size="md"
+                className="text-nowrap"
                 disabled={!totalPages}
               >
                 Continuar
@@ -159,7 +154,30 @@ export const FilesUploadStep: FC<Props> = ({ droppedFiles, setDroppedFiles, setS
             </Box>
           </Box>
         </div>
-      </Box >
-    </Dropzone >
+      </Box>
+
+      <Dropzone.FullScreen
+        multiple
+        openRef={dropZoneRef}
+        onDrop={onDrop}
+        accept={{
+          'image/*': [],
+          'application/pdf': ['.pdf']
+        }}
+        maxSize={MAX_FILE_SIZE}
+        classNames={{
+          root: `
+            relative
+            backdrop-blur-lg
+            backdrop-brightness-90
+          `,
+        }}
+      >
+        <div className="absolute inset-8 flex flex-col items-center justify-center">
+          <IconCloudUpload size={128} color={colors.metallic} />
+          <Text size="xl" ta="center">Arraste e solte os arquivos aqui</Text>
+        </div>
+      </Dropzone.FullScreen>
+    </>
   );
 }

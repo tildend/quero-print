@@ -4,7 +4,6 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
-  useLoaderData,
 } from "@remix-run/react";
 import { ColorSchemeScript, createTheme, MantineColorsTuple, MantineProvider } from "@mantine/core";
 
@@ -18,7 +17,6 @@ import { LinksFunction, LoaderFunctionArgs, MetaFunction } from "@remix-run/node
 import { Notifications } from "@mantine/notifications";
 import { ModalsProvider } from "@mantine/modals";
 import { theSession } from "./sessions.server";
-import { createContext } from "react";
 
 const print: MantineColorsTuple = [
   '#eef3ff', // zircon
@@ -33,7 +31,7 @@ const print: MantineColorsTuple = [
   '#2d4b81' // metallic-blue
 ];
 
-const theme = createTheme({
+export const theme = createTheme({
   colors: {
     print
   },
@@ -42,8 +40,8 @@ const theme = createTheme({
 });
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { userId } = await theSession(request);
-  return { userId };
+  const session = await theSession(request);
+  return { ...session };
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {

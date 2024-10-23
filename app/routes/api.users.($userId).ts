@@ -10,7 +10,12 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
   try {
     if (userId) {
       const user = await getUser(userId);
-      return json(user);
+      return json(user, {
+        headers: {
+          // Set a short cache time of 1 hour
+          "Cache-Control": "public, max-age=3600"
+        }
+      });
     }
 
     const search = url.searchParams.get("search") ?? "";
@@ -22,6 +27,8 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
       users,
       {
         headers: {
+          // Set a short cache time of 1 hour
+          "Cache-Control": "public, max-age=3600",
           "x-total": total.toString()
         }
       }

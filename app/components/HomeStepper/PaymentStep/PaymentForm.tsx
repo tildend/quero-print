@@ -1,4 +1,4 @@
-import { FC, FormEvent, useEffect, useState } from "react";
+import { Dispatch, FC, FormEvent, SetStateAction, useState } from "react";
 import {
   PaymentElement,
   useStripe,
@@ -9,9 +9,9 @@ import { notifications } from "@mantine/notifications";
 import type { UseFormReturnType } from "@mantine/form";
 import { modals } from "@mantine/modals";
 import { Link } from "@remix-run/react";
-import { getOrder } from "~/controllers/Orders.server";
 import { useOrderID } from "~/hooks/useOrder";
 import { maskMap, maskString } from "~/helpers/maskString";
+import { IconArrowBack } from "@tabler/icons-react";
 
 type Props = {
   payForm: UseFormReturnType<{
@@ -32,9 +32,10 @@ type Props = {
   }>
   clientSecret: string,
   handleSubmitPurchase: (paymentTx: string) => void;
+  setStep: Dispatch<SetStateAction<number>>;
 }
 
-export const PaymentForm: FC<Props> = ({ payForm, clientSecret, handleSubmitPurchase }) => {
+export const PaymentForm: FC<Props> = ({ payForm, clientSecret, handleSubmitPurchase, setStep }) => {
   const stripe = useStripe();
   const elements = useElements();
 
@@ -165,7 +166,12 @@ export const PaymentForm: FC<Props> = ({ payForm, clientSecret, handleSubmitPurc
 
   return (
     <form className="grid gap-3" onSubmit={handleSubmit}>
-      <h2 className="text-2xl font-bold">Informações de pagamento</h2>
+      <Box className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Informações de pagamento</h2>
+        <Button variant="subtle" size="compact-sm" onClick={() => setStep(0)}>
+          Voltar <IconArrowBack size={16} />
+        </Button>
+      </Box>
       <TextInput
         placeholder="Nome e sobrenome"
         type="name"

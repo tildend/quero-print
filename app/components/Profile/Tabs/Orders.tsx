@@ -5,7 +5,7 @@ import { numToMoney } from "~/helpers/numToMoney";
 import { Order } from "~/models/Order";
 
 type Props = {
-  orders?: WithId<Order>[];
+  orders?: { orders: WithId<Order>[], countTotal: number };
 }
 
 export default function OrdersTab({ orders }: Props) {
@@ -14,7 +14,7 @@ export default function OrdersTab({ orders }: Props) {
       <Box>
         <h3 className="text-xl font-semibold">Seus pedidos</h3>
         <p className="text-sm text-gray-500">
-          {orders?.length ?? 0} pedidos
+          {orders?.countTotal ?? 0} pedidos
         </p>
       </Box>
 
@@ -29,7 +29,7 @@ export default function OrdersTab({ orders }: Props) {
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {orders?.map(order => (
+          {orders.orders?.map(order => (
             <Table.Tr key={order._id.toString()}>
               <Table.Td>{order.files.length}</Table.Td>
               <Table.Td>{order.pages}</Table.Td>
