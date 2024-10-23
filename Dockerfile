@@ -12,7 +12,7 @@ FROM base AS build
 
 # Install packages needed to build node modules
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential pkg-config python-is-python3 ffmpeg=7:6.1.1-3ubuntu5
+    apt-get install --no-install-recommends -y build-essential pkg-config python-is-python3 ffmpeg
 
 # Install node modules including devDependencies
 COPY --link package.json package-lock.json ./
