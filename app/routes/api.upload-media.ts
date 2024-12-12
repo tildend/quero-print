@@ -58,11 +58,9 @@ export const action: ActionFunction = async ({ request }) => {
       throw new Erro('Falha ao fazer upload do arquivo', 500);
     }
 
-    return json(mediaURI,
-      { status: 200 }
-    );
+    return new Response(mediaURI);
   } catch (error) {
-    console.error(error);
+    console.error('Error uploading media', error);
     if (error instanceof Erro) {
       return json({ error: error.mensagem },
         { status: typeof error.contexto === 'number' ? error.contexto : 500 }

@@ -68,8 +68,12 @@ export const uploadMedia = async (path: string, media: StreamingBlobPayloadInput
     return undefined;
   }
 
+  console.log('Uploading media', path, fileName, fileExt);
+
   const fileFullPath = `filesToPrint/${path}/${fileName}.${fileExt}`;
 
+  console.log('File full path', fileFullPath);
+  console.log('bucket', S3_BUCKET);
   const uploadRes = await S3.send(
     new PutObjectCommand({
       Bucket: S3_BUCKET,

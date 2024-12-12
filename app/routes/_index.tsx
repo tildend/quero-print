@@ -29,7 +29,7 @@ export const meta: MetaFunction = () => {
     { name: "viewport", content: "width=device-width, initial-scale=1" },
     { name: "theme-color", content: "#2d4b81" },
     { name: "msapplication-TileColor", content: "#2d4b81" },
-    { name: "apple-mobile-web-app-capable", content: "yes" },
+    { name: "mobile-web-app-capable", content: "yes" },
     { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
     // Open Graph / Facebook
     { property: "og:type", content: "website" },
@@ -263,14 +263,8 @@ export default function Index() {
             URL: await uploadResponse.text()
           });
         } else {
-          console.error(uploadResponse, uploadedFiles);
+          console.error(await uploadResponse.json(), uploadedFiles);
           setLoading(false);
-
-          notifications.show({
-            title: 'Erro',
-            message: 'Falha ao fazer upload do arquivo',
-            color: 'red'
-          });
 
           throw new Erro('Falha ao fazer upload do arquivo: ' + file.name);
         }
@@ -407,7 +401,6 @@ export default function Index() {
       FC: () => (
         <PaymentStep
           totalPages={totalPages}
-          files={droppedFiles || []}
           isFlex={isFlex}
           setStep={setStep}
           orderTotal={orderTotal}
